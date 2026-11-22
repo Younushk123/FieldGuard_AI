@@ -1,0 +1,114 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // ---------- inspections ----------
+
+    function validAnalysis(a) {
+      return a is map
+        && a.analysisStatus in ['pending', 'done', 'failed']
+        && (!('rationale' in a)
+            || (a.rationale is string && a.rationale.size() <= 500))
+        && (!('recommendations' in a)
+            || (a.recommendations is list
+                && a.recommendations.size() >= 1
+                && a.recommendations.size() <= 5))
+        && (!('requiresImmediateAction' in a)
+            || a.requiresImmediateAction is bool)
+        && (!('uncertaintyNotes' in a)
+            || a.uncertaintyNotes == null
+            || (a.uncertaintyNotes is string && a.uncertaintyNotes.size() <= 300));
+    }
+
+    function validInspection(d) {
+      return d.keys().hasOnly([
+          'ownerId', 'createdAt', 'updatedAt', 'reportText', 'schemaVersion',
+          'hazardCategory', 'likelihood', 'severity', 'summary',
+          'suggestedAction', 'riskScore', 'riskLevel', 'inferenceSource',
+          'status', 'reviewedBy', 'reviewedAt', 'analysis'
+        ])
+        && d.keys().hasAll([
+          'ownerId', 'createdAt', 'updatedAt', 'reportText', 'schemaVersion',
+          'hazardCategory', 'likelihood', 'severity', 'summary',
+          'suggestedAction', 'riskScore', 'riskLevel', 'inferenceSource',
+          'status'
+        ])
+        && d.ownerId is string
+        && d.createdAt is timestamp
+        && d.updatedAt is timestamp
+        && d.reportText is string && d.reportText.size() > 0
+        && d.schemaVersion == '1.0'
+        && d.hazardCategory in [
+          'fall', 'electrical', 'fire', 'chemical',
+          'mechanical', 'ergonomic', 'environmental', 'other'
+        ]
+        && d.likelihood is int && d.likelihood >= 1 && d.likelihood <= 5
+        && d.severity is int && d.severity >= 1 && d.severity <= 5
+        && d.summary is string && d.summary.size() >= 1 && d.summary.size() <= 200
+        && d.suggestedAction is string
+        && d.suggestedAction.size() >= 1 && d.suggestedAction.size() <= 200
+        && d.riskScore is int && d.riskScore == d.likelihood * d.severity
+        && d.riskLevel in ['low', 'medium', 'high', 'critical']
+        && d.inferenceSource in ['on-device', 'cloud']
+        && d.status in ['pending_review', 'approved']
+        && (!('reviewedBy' in d) || d.reviewedBy is string)
+        && (!('reviewedAt' in d) || d.reviewedAt is timestamp)
+        && (!('analysis' in d) || validAnalysis(d.analysis));
+    }
+
+    match /inspections/{id} {
+      allow read: if signedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if signedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && validInspection(request.resource.data);
+      allow update: if signedIn()
+        && resource.data.ownerId == request.auth.uid
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.createdAt == resource.data.createdAt
+        && validInspection(request.resource.data);
+      allow delete: if false;
+    }
+
+    // ---------- actions ----------
+
+    function validAction(d) {
+      return d.keys().hasOnly([
+          'inspectionId', 'ownerId', 'title', 'description', 'priority',
+          'status', 'assignee', 'deadline', 'createdAt', 'updatedAt'
+        ])
+        && d.keys().hasAll([
+          'inspectionId', 'ownerId', 'title', 'status', 'createdAt', 'updatedAt'
+        ])
+        && d.inspectionId is string
+        && d.ownerId is string
+        && d.title is string && d.title.size() > 0
+        && d.status in ['open', 'in_progress', 'resolved']
+        && d.createdAt is timestamp
+        && d.updatedAt is timestamp
+        && (!('description' in d) || d.description is string)
+        && (!('priority' in d)
+            || d.priority in ['immediate', 'short_term', 'long_term'])
+        && (!('assignee' in d) || d.assignee is string)
+        && (!('deadline' in d) || d.deadline is timestamp);
+    }
+
+    match /actions/{id} {
+      allow read: if signedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if signedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && validAction(request.resource.data);
+      allow update: if signedIn()
+        && resource.data.ownerId == request.auth.uid
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.inspectionId == resource.data.inspectionId
+        && validAction(request.resource.data);
+      allow delete: if signedIn() && resource.data.ownerId == request.auth.uid;
+    }
+
+    // Everything else (including any collection not listed here) is denied.
+  }
+}
