@@ -1,0 +1,44 @@
+{
+  "input": {
+    "reportText": "Exposed wires hanging near the water pump on level 2. Floor is wet and two workers walk past it every hour.",
+    "classifier": {
+      "schemaVersion": "1.0",
+      "hazardCategory": "electrical",
+      "likelihood": 4,
+      "severity": 5,
+      "summary": "Exposed live wires near a wet area on level 2.",
+      "suggestedAction": "Isolate power and keep workers away from the area."
+    }
+  },
+  "output": {
+    "schemaVersion": "1.0",
+    "hazardCategory": "electrical",
+    "likelihood": 4,
+    "severity": 5,
+    "summary": "Exposed wires near a wet floor create an electrocution risk for passing workers.",
+    "suggestedAction": "Switch off power to the pump circuit and cordon off the wet area now.",
+    "rationale": "Exposed conductors combined with water and regular foot traffic make contact likely, and electric shock can be fatal.",
+    "recommendations": [
+      {
+        "title": "Isolate power and cordon off the area",
+        "description": "Switch off the supply to the pump circuit, lock it out, and block access to the wet area until it is cleared.",
+        "priority": "immediate",
+        "suggestedDueDays": 0
+      },
+      {
+        "title": "Repair and insulate the wiring",
+        "description": "A qualified electrician should replace damaged cable, fit proper conduit and insulation, and test the circuit.",
+        "priority": "short_term",
+        "suggestedDueDays": 2
+      },
+      {
+        "title": "Fix the water leak and add a GFCI",
+        "description": "Find and repair the source of the water, and install ground-fault protection on the pump circuit.",
+        "priority": "short_term",
+        "suggestedDueDays": 7
+      }
+    ],
+    "requiresImmediateAction": true,
+    "uncertaintyNotes": "Voltage and exact wire condition were not stated in the report."
+  }
+}
