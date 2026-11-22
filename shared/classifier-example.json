@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "1.0",
+  "hazardCategory": "electrical",
+  "likelihood": 4,
+  "severity": 5,
+  "summary": "Exposed live wires near a wet floor in the workshop.",
+  "suggestedAction": "Isolate power, cover the wiring and keep the area dry until an electrician repairs it."
+}

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FieldGuard Hazard Classification",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "hazardCategory",
+    "likelihood",
+    "severity",
+    "summary",
+    "suggestedAction"
+  ],
+  "properties": {
+    "schemaVersion": { "type": "string", "const": "1.0" },
+    "hazardCategory": {
+      "type": "string",
+      "enum": [
+        "fall", "electrical", "fire", "chemical",
+        "mechanical", "ergonomic", "environmental", "other"
+      ]
+    },
+    "likelihood": { "type": "integer", "minimum": 1, "maximum": 5 },
+    "severity": { "type": "integer", "minimum": 1, "maximum": 5 },
+    "summary": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "suggestedAction": { "type": "string", "minLength": 1, "maxLength": 200 }
+  }
+}
