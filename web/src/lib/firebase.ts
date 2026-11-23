@@ -1,0 +1,51 @@
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+import { getRemoteConfig } from 'firebase/remote-config';
+import { initializeAppCheck, CustomProvider } from 'firebase/app-check';
+import { getAI, GoogleAIBackend } from 'firebase/ai';
+
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
+};
+
+// Enable debug token for local development when configured
+if (typeof window !== 'undefined' && import.meta.env.VITE_APPCHECK_DEBUG_TOKEN) {
+  // @ts-expect-error FIREBASE_APPCHECK_DEBUG_TOKEN exists on window in dev
+  window.FIREBASE_APPCHECK_DEBUG_TOKEN =
+    import.meta.env.VITE_APPCHECK_DEBUG_TOKEN === 'true'
+      ? true
+      : import.meta.env.VITE_APPCHECK_DEBUG_TOKEN;
+}
+
+export const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+export const remoteConfig = getRemoteConfig(app);
+
+// Initialize Firebase AI Logic with Gemini Developer API backend
+export const ai = getAI(app, { backend: new GoogleAIBackend() });
+
+// Optional App Check initialization in dev mode
+if (typeof window !== 'undefined' && import.meta.env.VITE_APPCHECK_DEBUG_TOKEN) {
+  try {
+    initializeAppCheck(app, {
+      provider: new CustomProvider({
+        getToken: () =>
+          Promise.resolve({
+            token: 'debug-token-active',
+            expireTimeMillis: Date.now() + 60 * 60 * 1000,
+          }),
+      }),
+      isTokenAutoRefreshEnabled: true,
+    });
+  } catch (err) {
+    console.warn('App Check init skipped in current context:', err);
+  }
+}
