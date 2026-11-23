@@ -1,0 +1,29 @@
+{
+  "thresholds": { "medium": 5, "high": 10, "critical": 16 },
+  "valid": [
+    { "likelihood": 1, "severity": 1, "riskScore": 1, "riskLevel": "low" },
+    { "likelihood": 4, "severity": 1, "riskScore": 4, "riskLevel": "low" },
+    { "likelihood": 2, "severity": 2, "riskScore": 4, "riskLevel": "low" },
+    { "likelihood": 1, "severity": 5, "riskScore": 5, "riskLevel": "medium" },
+    { "likelihood": 5, "severity": 1, "riskScore": 5, "riskLevel": "medium" },
+    { "likelihood": 3, "severity": 3, "riskScore": 9, "riskLevel": "medium" },
+    { "likelihood": 2, "severity": 5, "riskScore": 10, "riskLevel": "high" },
+    { "likelihood": 5, "severity": 2, "riskScore": 10, "riskLevel": "high" },
+    { "likelihood": 3, "severity": 5, "riskScore": 15, "riskLevel": "high" },
+    { "likelihood": 4, "severity": 4, "riskScore": 16, "riskLevel": "critical" },
+    { "likelihood": 4, "severity": 5, "riskScore": 20, "riskLevel": "critical" },
+    { "likelihood": 5, "severity": 5, "riskScore": 25, "riskLevel": "critical" }
+  ],
+  "invalid": [
+    { "likelihood": 0, "severity": 3 },
+    { "likelihood": 3, "severity": 0 },
+    { "likelihood": 6, "severity": 3 },
+    { "likelihood": 3, "severity": 6 },
+    { "likelihood": -1, "severity": 3 },
+    { "likelihood": 2.5, "severity": 3 },
+    { "likelihood": 3, "severity": 1.5 },
+    { "likelihood": "3", "severity": 3 },
+    { "likelihood": null, "severity": 3 },
+    { "likelihood": 3, "severity": null }
+  ]
+}
