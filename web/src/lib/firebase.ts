@@ -1,6 +1,11 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import {
+  getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from 'firebase/firestore';
 import { getRemoteConfig } from 'firebase/remote-config';
 import { initializeAppCheck, CustomProvider } from 'firebase/app-check';
 import { getAI, GoogleAIBackend } from 'firebase/ai';
@@ -26,7 +31,20 @@ if (typeof window !== 'undefined' && import.meta.env.VITE_APPCHECK_DEBUG_TOKEN) 
 
 export const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+function createDb() {
+  try {
+    return initializeFirestore(app, {
+      localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager(),
+      }),
+    });
+  } catch {
+    // Firestore was already initialized (e.g. Vite hot reload): reuse it.
+    return getFirestore(app);
+  }
+}
+
+export const db = createDb();
 export const remoteConfig = getRemoteConfig(app);
 
 // Initialize Firebase AI Logic with Gemini Developer API backend
