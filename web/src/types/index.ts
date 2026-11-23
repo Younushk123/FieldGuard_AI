@@ -1,3 +1,5 @@
+import type { Timestamp } from 'firebase/firestore';
+
 export type HazardCategory =
   | 'fall'
   | 'electrical'
@@ -46,9 +48,8 @@ export interface CloudAnalysis {
 export interface InspectionRecord {
   id?: string;
   ownerId?: string;
-  title: string;
-  location: string;
   reportText: string;
+  schemaVersion: '1.0';
   hazardCategory: HazardCategory;
   likelihood: number;
   severity: number;
@@ -58,5 +59,9 @@ export interface InspectionRecord {
   riskLevel: RiskLevel;
   inferenceSource: InferenceSource;
   status: InspectionStatus;
-  createdAt: string;
+  reviewedBy?: string;
+  reviewedAt?: Timestamp;
+  analysis?: CloudAnalysis;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 }

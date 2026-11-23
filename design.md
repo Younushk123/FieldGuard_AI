@@ -109,20 +109,19 @@ FieldGuard AI follows an industrial enterprise design aesthetic inspired by tool
   - Interactive 5×5 matrix plotting Likelihood ($1 \dots 5$) on the vertical axis against Severity ($1 \dots 5$) on the horizontal axis.
   - Highlights active observations in their respective colored risk cells.
 - **Recent Observation Feed Table**:
-  - Columns: Reference ID, Location, Hazard Category Pill, Likelihood × Severity, Risk Rating, Model Badge, Review Status.
+  - Columns: Reference ID, Hazard Summary, Category Pill, Likelihood × Severity, Risk Rating, Model Badge, Review Status.
 
 ### Screen C: Inspection Records Management
 - **Purpose**: Comprehensive historical archive and filter hub for all worksite inspections.
 - **Components**:
-  - Search input with multi-factor query matching (description, location, auditor).
+  - Search input with multi-factor query matching (hazard summary, report description, category, auditor).
   - Filter Dropdowns: Category (Electrical, Fall, Chemical, Fire, Mechanical, Environmental), Risk Severity, and Review Status.
   - Data Grid with row selection, audit timestamps, and direct "Audit & Inspect" action triggers.
 
 ### Screen D: New Hazard Observation Intake Form
-- **Purpose**: Field data collection interface for site inspectors.
+- **Purpose**: Streamlined, field-focused data collection interface for site inspectors (rapid voice/text intake).
 - **Components**:
-  - *Inspection Metadata*: Inspection Title and Site/Zone selector.
-  - *Observation Report*: Textarea enforcing Schema v1.0 standard facts.
+  - *Observation Report*: Textarea enforcing Schema v1.0 standard facts (AI generates summary automatically; no redundant manual title or location fields required).
   - *Photographic Evidence Dropzone*: Drag-and-drop attachment zone for site photos.
   - *Hybrid AI Routing Strategy*:
     - `PREFER_ON_DEVICE`: Executes Gemini Nano locally in-browser, falling back to cloud if offline/unsupported.

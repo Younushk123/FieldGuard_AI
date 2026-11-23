@@ -6,15 +6,17 @@ import { ActionsView } from './features/actions/index.tsx';
 import { AnalysisView } from './features/analysis/index.tsx';
 import { ReviewView } from './features/review/index.tsx';
 import { AuthView } from './features/auth/index.tsx';
+import { useAuth } from './features/auth/useAuth';
 
 type Tab = 'dashboard' | 'capture' | 'history' | 'actions' | 'analysis' | 'review' | 'auth';
 
 export const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<Tab>('capture');
+  const [activeTab, setActiveTab] = useState<Tab>('auth');
+  const { user } = useAuth();
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col">
-      {/* Top Application Bar */}
+      {/* Top Simple Navigation Bar */}
       <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-orange-600 flex items-center justify-center text-white shadow-sm font-black text-sm">
@@ -82,15 +84,16 @@ export const App: React.FC = () => {
           </button>
           <button
             onClick={() => setActiveTab('auth')}
-            className={`px-3 py-1.5 rounded-md font-semibold transition ${
+            className={`px-3 py-1.5 rounded-md font-semibold transition flex items-center gap-1.5 ${
               activeTab === 'auth' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            Auth
+            <span>{user ? '👤 Account' : '🔑 Sign In'}</span>
+            {user && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>}
           </button>
         </nav>
 
-        {/* Right AI Engine Pill */}
+        {/* Right Status */}
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-xs">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
           <span className="text-slate-500">Inference:</span>
