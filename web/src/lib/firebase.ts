@@ -11,7 +11,7 @@ import { initializeAppCheck, CustomProvider } from 'firebase/app-check';
 import { getAI, GoogleAIBackend } from 'firebase/ai';
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyDevPlaceholderKey1234567890abcdef',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'dev-placeholder-key-not-secret',
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'fieldguard-ai.firebaseapp.com',
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'fieldguard-ai',
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'fieldguard-ai.firebasestorage.app',
