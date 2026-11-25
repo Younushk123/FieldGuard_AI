@@ -1,20 +1,17 @@
-import React, { useEffect, useState } from 'react';
-import { useAuthUser } from '../data/useAuthUser.ts';
+import React, { useEffect, useRef, useState } from 'react';
+import { useAuth } from '../auth/useAuth';
 import { subscribeActions, subscribeInspections, createAction, updateAction } from '../data/api.ts';
 import type { ActionDoc, ActionStatus, InspectionDoc } from '../data/types.ts';
 
 // Owner: Maaz
-
-const COLUMNS: { status: ActionStatus; label: string }[] = [
-  { status: 'open', label: 'Open' },
-  { status: 'in_progress', label: 'In Progress' },
-  { status: 'resolved', label: 'Resolved' },
+const COLUMNS: { status: ActionStatus; label: string; dot: string }[] = [
+  { status: 'open', label: 'Open', dot: '#f97316' },
+  { status: 'in_progress', label: 'In Progress', dot: '#38bdf8' },
+  { status: 'resolved', label: 'Resolved', dot: '#10b981' },
 ];
-
-const PRIORITY_STYLE: Record<string, string> = {
-  immediate: 'bg-rose-100 text-rose-700',
-  short_term: 'bg-amber-100 text-amber-700',
-  long_term: 'bg-slate-100 text-slate-600',
+const TONE: Record<string, string> = { immediate: 'high', short_term: 'medium', long_term: 'cloud' };
+const guard = (p: Promise<unknown>, onError: (m: string) => void) => {
+  p.catch((e: Error) => onError(e.message || 'Update failed'));
 };
 
 const ActionCard: React.FC<{ action: ActionDoc; onError: (m: string) => void }> = ({ action, onError }) => {
@@ -24,149 +21,106 @@ const ActionCard: React.FC<{ action: ActionDoc; onError: (m: string) => void }> 
   const index = COLUMNS.findIndex((c) => c.status === action.status);
   const deadline = action.deadline?.toDate();
   const overdue = !!deadline && action.status !== 'resolved' && deadline.getTime() < Date.now();
+  const tone = action.priority ? TONE[action.priority] : '';
 
-  const run = (p: Promise<unknown>) => {
-    p.catch((e: Error) => onError(e.message || 'Update failed'));
+  // The date is typed into local state first. Saving on every keystroke made the field reset
+  // itself (year 0002, 0020, ...), so we save only a complete date, shortly after typing stops.
+  const deadlineStr = deadline ? deadline.toLocaleDateString('en-CA') : '';
+  const [dateDraft, setDateDraft] = useState(deadlineStr);
+  const timer = useRef<number | undefined>(undefined);
+  useEffect(() => setDateDraft(deadlineStr), [deadlineStr]);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  const commitDate = (v: string) => {
+    const year = Number(v.slice(0, 4));
+    if (v && v !== deadlineStr && year >= 2000 && year <= 2100) {
+      guard(updateAction(action.id, { deadline: new Date(`${v}T00:00:00`) }), onError);
+    }
+  };
+  const onDate = (v: string) => {
+    setDateDraft(v);
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => commitDate(v), 700);
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm space-y-2">
+    <div className={`fg-item ${tone ? `fg-item--${tone}` : ''}`}>
       <div className="flex items-start justify-between gap-2">
-        <div className="text-xs font-semibold text-slate-900">{action.title}</div>
-        {action.priority && (
-          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${PRIORITY_STYLE[action.priority]}`}>
-            {action.priority.replace('_', ' ')}
-          </span>
-        )}
+        <div className="text-sm font-semibold">{action.title}</div>
+        {action.priority && <span className={`fg-pill fg-pill--${tone}`}>{action.priority.replace('_', ' ')}</span>}
       </div>
-      {action.description && <div className="text-[11px] text-slate-500">{action.description}</div>}
-
-      <input
-        value={assignee}
-        onChange={(e) => setAssignee(e.target.value)}
-        onBlur={() => assignee !== (action.assignee ?? '') && run(updateAction(action.id, { assignee }))}
-        placeholder="Assignee"
-        className="w-full bg-slate-50 border border-slate-200 rounded p-1.5 text-[11px]"
-      />
-      <input
-        type="date"
-        value={deadline ? deadline.toISOString().slice(0, 10) : ''}
-        onChange={(e) => e.target.value && run(updateAction(action.id, { deadline: new Date(e.target.value + 'T00:00:00') }))}
-        className={`w-full border rounded p-1.5 text-[11px] ${
-          overdue ? 'border-rose-300 bg-rose-50 text-rose-700' : 'border-slate-200 bg-slate-50'
-        }`}
-      />
-      {overdue && <div className="text-[10px] font-semibold text-rose-600">Overdue</div>}
-
+      {action.description && <div className="fg-sub text-xs">{action.description}</div>}
+      <input className="fg-input" placeholder="Assignee" value={assignee} onChange={(e) => setAssignee(e.target.value)}
+        onBlur={() => assignee !== (action.assignee ?? '') && guard(updateAction(action.id, { assignee }), onError)} />
+      <input type="date" className="fg-input" min="2000-01-01" max="2100-12-31" value={dateDraft}
+        onChange={(e) => onDate(e.target.value)}
+        onBlur={() => { window.clearTimeout(timer.current); commitDate(dateDraft); }} />
+      {overdue && <span className="fg-pill fg-pill--critical self-start">Overdue</span>}
       <div className="flex justify-between pt-1">
-        <button
-          disabled={index === 0}
-          onClick={() => run(updateAction(action.id, { status: COLUMNS[index - 1].status }))}
-          className="text-[11px] text-slate-600 disabled:opacity-30"
-        >
-          ← Back
-        </button>
-        <button
-          disabled={index === COLUMNS.length - 1}
-          onClick={() => run(updateAction(action.id, { status: COLUMNS[index + 1].status }))}
-          className="text-[11px] font-semibold text-orange-600 disabled:opacity-30"
-        >
-          Move →
-        </button>
+        <button className="fg-link fg-link--muted" disabled={index === 0}
+          onClick={() => guard(updateAction(action.id, { status: COLUMNS[index - 1].status }), onError)}>← Back</button>
+        <button className="fg-link" disabled={index === COLUMNS.length - 1}
+          onClick={() => guard(updateAction(action.id, { status: COLUMNS[index + 1].status }), onError)}>Move →</button>
       </div>
     </div>
   );
 };
 
-const NewActionForm: React.FC<{ uid: string; inspections: InspectionDoc[]; onError: (m: string) => void }> = ({
-  uid,
-  inspections,
-  onError,
-}) => {
+const NewActionForm: React.FC<{ uid: string; inspections: InspectionDoc[]; onError: (m: string) => void }> = ({ uid, inspections, onError }) => {
   const [title, setTitle] = useState('');
   const [inspectionId, setInspectionId] = useState('manual');
-
   const submit = () => {
     if (!title.trim()) return;
-    createAction(uid, { inspectionId, title: title.trim() })
-      .then(() => setTitle(''))
-      .catch((e: Error) => onError(e.message || 'Could not create action'));
+    createAction(uid, { inspectionId, title: title.trim() }).then(() => setTitle('')).catch((e: Error) => onError(e.message || 'Could not create action'));
   };
-
   return (
-    <div className="flex flex-wrap gap-2 items-center bg-white border border-slate-200 rounded-lg p-3">
-      <input
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder="New action title"
-        className="flex-1 min-w-48 bg-slate-50 border border-slate-200 rounded p-2 text-xs"
-      />
-      <select
-        value={inspectionId}
-        onChange={(e) => setInspectionId(e.target.value)}
-        className="bg-slate-50 border border-slate-200 rounded p-2 text-xs"
-      >
+    <div className="fg-card flex flex-wrap gap-2 items-center">
+      <input className="fg-input flex-1" style={{ minWidth: 192 }} placeholder="New action title" value={title} onChange={(e) => setTitle(e.target.value)} />
+      <select className="fg-input" style={{ width: 'auto' }} value={inspectionId} onChange={(e) => setInspectionId(e.target.value)}>
         <option value="manual">Not linked (manual)</option>
-        {inspections.map((i) => (
-          <option key={i.id} value={i.id}>
-            {i.summary.slice(0, 40)}
-          </option>
-        ))}
+        {inspections.map((i) => <option key={i.id} value={i.id}>{i.summary.slice(0, 40)}</option>)}
       </select>
-      <button onClick={submit} className="px-3 py-2 rounded bg-orange-600 text-white text-xs font-semibold">
-        Add action
-      </button>
+      <button className="fg-btn" onClick={submit}>Add action</button>
     </div>
   );
 };
 
 export const ActionsView: React.FC = () => {
-  const { user, ready } = useAuthUser();
+  const { user, loading } = useAuth();
   const [actions, setActions] = useState<ActionDoc[] | null>(null);
   const [inspections, setInspections] = useState<InspectionDoc[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) {
-      setActions(null);
-      return;
-    }
-    const stopActions = subscribeActions(user.uid, setActions, (e) => setError(e.message));
-    const stopInspections = subscribeInspections(user.uid, setInspections, (e) => setError(e.message));
-    return () => {
-      stopActions();
-      stopInspections();
-    };
+    if (!user) { setActions(null); return; }
+    const a = subscribeActions(user.uid, setActions, (e) => setError(e.message));
+    const b = subscribeInspections(user.uid, setInspections, (e) => setError(e.message));
+    return () => { a(); b(); };
   }, [user]);
 
-  if (!ready) return <div className="text-xs text-slate-500">Loading…</div>;
-  if (!user) return <div className="text-xs text-slate-500">Sign in to see your corrective actions.</div>;
+  if (loading) return <div className="fg-sub">Loading…</div>;
+  if (!user) return <div className="fg-sub">Sign in to see your corrective actions.</div>;
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-lg font-bold text-slate-900">Corrective Actions</h2>
-      {error && (
-        <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded p-2 flex justify-between">
-          {error}
-          <button onClick={() => setError(null)}>Dismiss</button>
-        </div>
-      )}
+    <div className="space-y-4 max-w-6xl mx-auto">
+      <header>
+        <div className="fg-eyebrow">Work management</div>
+        <h1 className="fg-title">Corrective actions</h1>
+        <p className="fg-sub mt-1">Track hazards from assignment through resolution.</p>
+      </header>
+      {error && <div className="fg-banner fg-banner--error">{error}<button className="fg-link" onClick={() => setError(null)}>Dismiss</button></div>}
       <NewActionForm uid={user.uid} inspections={inspections} onError={setError} />
-      {actions === null ? (
-        <div className="text-xs text-slate-500">Loading actions…</div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {actions === null ? <div className="fg-sub">Loading actions…</div> : (
+        <div className="fg-board">
           {COLUMNS.map((col) => {
             const items = actions.filter((a) => a.status === col.status);
             return (
-              <div key={col.status} className="bg-slate-100 rounded-xl p-3 space-y-3">
-                <div className="text-xs font-bold text-slate-700">
-                  {col.label} <span className="text-slate-400">({items.length})</span>
+              <div key={col.status} className="fg-col">
+                <div className="flex items-center gap-2 text-sm font-semibold">
+                  <span className="w-2 h-2 rounded-full" style={{ background: col.dot }} />{col.label}
+                  <span className="fg-sub">{items.length}</span>
                 </div>
-                {items.length === 0 && <div className="text-[11px] text-slate-400">No actions here.</div>}
-                {items.map((a) => (
-                  <ActionCard key={a.id} action={a} onError={setError} />
-                ))}
+                {items.length === 0 && <div className="fg-sub text-xs">No actions here.</div>}
+                {items.map((a) => <ActionCard key={a.id} action={a} onError={setError} />)}
               </div>
             );
           })}

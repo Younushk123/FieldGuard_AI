@@ -19,7 +19,7 @@ export function subscribeActions(
   return onSnapshot(
     q,
     (snap) => {
-      const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ActionDoc);
+      const items = snap.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) }) as ActionDoc);
       onData(items.sort(byNewest));
     },
     onError
@@ -35,7 +35,7 @@ export function subscribeInspections(
   return onSnapshot(
     q,
     (snap) => {
-      const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as InspectionDoc);
+      const items = snap.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) }) as InspectionDoc);
       onData(items.sort(byNewest));
     },
     onError
