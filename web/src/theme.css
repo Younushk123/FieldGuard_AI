@@ -1,0 +1,50 @@
+/* FieldGuard single stylesheet: design tokens + shared component classes.
+   Import once in main.tsx (after index.css): import './theme.css';
+   Switch theme with: document.documentElement.dataset.theme = 'light' | 'dark' */
+
+:root,
+[data-theme='dark'] {
+  --fg-page: #07120f; --fg-side: #0a1814; --fg-card: #0c1c17; --fg-deep: #09150f;
+  --fg-border: #183029; --fg-text: #e8f3ef; --fg-muted: #86a399;
+  --fg-accent: #10d9a5; --fg-on-accent: #03140e; --fg-active: #0f2a22;
+  --fg-danger-bg: #3b1218; --fg-danger: #fca5a5;
+}
+/* Light values come from design.md section 3.1 */
+[data-theme='light'] {
+  --fg-page: #f8fafc; --fg-side: #ffffff; --fg-card: #ffffff; --fg-deep: #f1f5f9;
+  --fg-border: #e2e8f0; --fg-text: #0f172a; --fg-muted: #475569;
+  --fg-accent: #ea580c; --fg-on-accent: #ffffff; --fg-active: #fff7ed;
+  --fg-danger-bg: #fef2f2; --fg-danger: #dc2626;
+}
+
+.fg-eyebrow { font-size: .75rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--fg-muted); }
+.fg-title { font-size: 1.875rem; font-weight: 700; margin-top: .25rem; color: var(--fg-text); }
+.fg-sub { font-size: .875rem; color: var(--fg-muted); }
+.fg-card { background: var(--fg-card); border: 1px solid var(--fg-border); border-radius: 1rem; padding: 1.25rem; min-width: 0; }
+
+.fg-btn { background: var(--fg-accent); color: var(--fg-on-accent); border: 0; border-radius: .75rem; padding: .5rem 1rem; font-size: .875rem; font-weight: 600; cursor: pointer; }
+.fg-btn:disabled { opacity: .4; cursor: default; }
+.fg-link { background: none; border: 0; padding: 0; color: var(--fg-accent); font-size: .8125rem; font-weight: 600; cursor: pointer; }
+.fg-link:disabled { opacity: .35; cursor: default; }
+.fg-link--muted { color: var(--fg-muted); }
+
+.fg-label { display: block; font-size: .75rem; font-weight: 600; margin-bottom: .25rem; color: var(--fg-muted); }
+.fg-input { width: 100%; background: var(--fg-deep); color: var(--fg-text); border: 1px solid var(--fg-border); border-radius: .5rem; padding: .5rem .625rem; font-size: .8125rem; }
+.fg-input:focus { outline: 2px solid var(--fg-accent); outline-offset: -1px; }
+
+.fg-banner { display: flex; justify-content: space-between; gap: .75rem; border-radius: .5rem; padding: .625rem .75rem; font-size: .875rem; background: var(--fg-deep); border: 1px solid var(--fg-border); color: var(--fg-text); }
+.fg-banner--error { background: var(--fg-danger-bg); color: var(--fg-danger); border-color: transparent; }
+
+/* Pills: set --pill, or use a modifier below */
+.fg-pill { --pill: var(--fg-muted); display: inline-block; white-space: nowrap; padding: .125rem .5rem; border-radius: .375rem; font-size: .75rem; font-weight: 600; color: var(--pill); background: color-mix(in srgb, var(--pill) 12%, transparent); border: 1px solid color-mix(in srgb, var(--pill) 35%, transparent); }
+.fg-pill--critical { --pill: #ef4444; } .fg-pill--high { --pill: #f97316; } .fg-pill--medium { --pill: #eab308; } .fg-pill--low { --pill: #10b981; }
+.fg-pill--pending { --pill: #f59e0b; } .fg-pill--approved { --pill: #10b981; } .fg-pill--cloud { --pill: #38bdf8; } .fg-pill--device { --pill: #34d399; }
+
+.fg-table { width: 100%; text-align: left; font-size: .875rem; color: var(--fg-text); }
+.fg-table th { font-size: .75rem; font-weight: 600; color: var(--fg-muted); padding: .5rem 1rem .5rem 0; }
+.fg-table td { padding: .75rem 1rem .75rem 0; border-top: 1px solid var(--fg-border); }
+
+.fg-board { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
+.fg-col { display: flex; flex-direction: column; gap: .75rem; padding: .75rem; background: var(--fg-deep); border: 1px solid var(--fg-border); border-radius: 1rem; }
+.fg-item { --bar: var(--fg-border); display: flex; flex-direction: column; gap: .5rem; padding: .75rem; background: var(--fg-card); border: 1px solid var(--fg-border); border-left: 3px solid var(--bar); border-radius: .75rem; }
+.fg-item--high { --bar: #f97316; } .fg-item--medium { --bar: #eab308; } .fg-item--cloud { --bar: #38bdf8; }
