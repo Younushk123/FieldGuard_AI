@@ -102,9 +102,26 @@ npm test
 cd ..
 ```
 
-### 3. Run Web Application
+### 3. Configure Environment Variables
+Copy `.env.example` to `.env.local` inside the `web/` directory and configure your Firebase web app credentials:
 ```bash
 cd web
+cp .env.example .env.local
+```
+Key variables in `web/.env.local`:
+```env
+VITE_FIREBASE_API_KEY=your_api_key_here
+VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_project.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
+VITE_FIREBASE_APP_ID=your_app_id
+VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
+VITE_APPCHECK_DEBUG_TOKEN=true # Enables App Check debug token for local development
+```
+
+### 4. Run Web Application
+```bash
 npm install
 npm run dev
 ```

@@ -49,7 +49,7 @@ export const AnalysisView: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-emerald-950/60 pb-5">
         <div>
           <div className="text-[10px] font-mono uppercase tracking-widest text-emerald-400 font-bold">
-            AI Intelligence / Architecture
+            AI Analysis / Architecture
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight mt-0.5">
             Hybrid by design.
