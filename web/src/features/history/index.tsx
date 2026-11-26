@@ -165,7 +165,7 @@ export const HistoryView: React.FC = () => {
             <tbody>
               {filtered.map((i) => (
                 <tr key={i.id} className="border-b border-slate-100 align-top">
-                  <td className="py-2 pr-3 font-mono text-slate-500">{i.id.slice(0, 6).toUpperCase()}</td>
+                  <td className="py-2 pr-3 font-mono text-slate-500">{`INS-${i.id.slice(0, 4).toUpperCase()}`}</td>
                   <td className="py-2 pr-3 text-slate-600 whitespace-nowrap">{formatDate(i)}</td>
                   <td className="py-2 pr-3 text-slate-900 max-w-xs">{i.summary}</td>
                   <td className="py-2 pr-3 capitalize">{i.hazardCategory}</td>
