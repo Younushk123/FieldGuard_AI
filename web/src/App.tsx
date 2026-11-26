@@ -9,7 +9,38 @@ import { ReviewView } from './features/review/index.tsx';
 import { AuthView } from './features/auth/index.tsx';
 import { useAuth } from './features/auth/useAuth';
 
-type Tab = 'landing' | 'dashboard' | 'capture' | 'history' | 'review' | 'actions' | 'analysis' | 'settings';
+type Tab = 'dashboard' | 'capture' | 'history' | 'review' | 'actions' | 'analysis' | 'settings';
+
+function getRouteFromPath(path: string): { type: 'landing' | 'signin' | 'app'; tab: Tab } {
+  const clean = path.replace(/^\/+|\/+$/g, '').toLowerCase();
+  if (!clean || clean === 'landing') {
+    return { type: 'landing', tab: 'dashboard' };
+  }
+  if (clean === 'signin' || clean === 'login') {
+    return { type: 'signin', tab: 'settings' };
+  }
+  let tab: Tab = 'dashboard';
+  if (clean === 'dashboard') tab = 'dashboard';
+  else if (clean === 'capture' || clean === 'new' || clean === 'new-inspection') tab = 'capture';
+  else if (clean === 'history' || clean === 'inspections') tab = 'history';
+  else if (clean === 'review') tab = 'review';
+  else if (clean === 'actions') tab = 'actions';
+  else if (clean === 'analysis') tab = 'analysis';
+  else if (clean === 'settings' || clean === 'profile') tab = 'settings';
+  return { type: 'app', tab };
+}
+
+function tabToPath(tab: Tab): string {
+  switch (tab) {
+    case 'dashboard': return '/dashboard';
+    case 'capture': return '/capture';
+    case 'history': return '/inspections';
+    case 'review': return '/review';
+    case 'actions': return '/actions';
+    case 'analysis': return '/analysis';
+    case 'settings': return '/settings';
+  }
+}
 
 function useOnline() {
   const [online, setOnline] = useState(navigator.onLine);
@@ -27,11 +58,29 @@ function useOnline() {
 }
 
 export const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<Tab>('dashboard');
-  const [authMode, setAuthMode] = useState<'landing' | 'signin'>('landing');
+  const [routeInfo, setRouteInfo] = useState(() => getRouteFromPath(window.location.pathname));
   const [workspace, setWorkspace] = useState('Plant 2');
   const { user, loading } = useAuth();
   const online = useOnline();
+
+  useEffect(() => {
+    const onPop = () => {
+      setRouteInfo(getRouteFromPath(window.location.pathname));
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
+  const navigate = (path: string) => {
+    if (window.location.pathname !== path) {
+      window.history.pushState({}, '', path);
+    }
+    setRouteInfo(getRouteFromPath(path));
+  };
+
+  const handleTabChange = (tab: Tab) => {
+    navigate(tabToPath(tab));
+  };
 
   // Loading state
   if (loading) {
@@ -45,23 +94,31 @@ export const App: React.FC = () => {
     );
   }
 
-  // Unauthenticated visitors: Show Landing Page (Page 02) or Sign-in (Page 10)
-  if (!user) {
-    if (authMode === 'signin') {
-      return <AuthView onBack={() => setAuthMode('landing')} />;
-    }
+  // 1. Standalone Public Landing Page at "/" (No sidebar, no top bar, 100% standalone)
+  if (routeInfo.type === 'landing') {
     return (
       <LandingPageView
-        onLaunchDashboard={() => setAuthMode('signin')}
-        onSignIn={() => setAuthMode('signin')}
-        onExploreAI={() => setAuthMode('signin')}
+        onLaunchDashboard={() => navigate('/dashboard')}
+        onSignIn={() => navigate('/signin')}
+        onExploreAI={() => navigate('/analysis')}
       />
     );
   }
 
+  // 2. Standalone Sign In Page at "/signin" (when not logged in)
+  if (routeInfo.type === 'signin' && !user) {
+    return <AuthView onBack={() => navigate('/')} />;
+  }
+
+  // 3. Authenticated App Protection (Redirect unauthenticated users to Sign In with Back to "/")
+  if (!user) {
+    return <AuthView onBack={() => navigate('/')} />;
+  }
+
+  const activeTab = routeInfo.tab;
+
   const getBreadcrumb = () => {
     switch (activeTab) {
-      case 'landing': return 'Public Landing Page';
       case 'dashboard': return 'Safety overview';
       case 'capture': return 'New inspection';
       case 'history': return 'Safety overview';
@@ -129,12 +186,8 @@ export const App: React.FC = () => {
             {/* Public Landing Page */}
             <button
               type="button"
-              onClick={() => setActiveTab('landing')}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition cursor-pointer ${
-                activeTab === 'landing'
-                  ? 'bg-[#00DF89] text-[#071311] font-bold shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-[#0C1A18]'
-              }`}
+              onClick={() => navigate('/')}
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-[#0C1A18] transition cursor-pointer"
             >
               <div className="flex items-center gap-3">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
@@ -142,17 +195,15 @@ export const App: React.FC = () => {
                 </svg>
                 <span>Landing Page</span>
               </div>
-              <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${
-                activeTab === 'landing' ? 'bg-[#071311]/20 text-[#071311]' : 'bg-[#00DF89]/10 text-[#00DF89]'
-              }`}>
-                Page 02
+              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#00DF89]/10 text-[#00DF89]">
+                Public
               </span>
             </button>
 
             {/* Dashboard */}
             <button
               type="button"
-              onClick={() => setActiveTab('dashboard')}
+              onClick={() => handleTabChange('dashboard')}
               className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition cursor-pointer ${
                 activeTab === 'dashboard'
                   ? 'bg-[#00DF89] text-[#071311] font-bold shadow-sm'
@@ -170,7 +221,7 @@ export const App: React.FC = () => {
             {/* Inspections (History) */}
             <button
               type="button"
-              onClick={() => setActiveTab('history')}
+              onClick={() => handleTabChange('history')}
               className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition cursor-pointer ${
                 activeTab === 'history'
                   ? 'bg-[#00DF89] text-[#071311] font-bold shadow-sm'
@@ -188,7 +239,7 @@ export const App: React.FC = () => {
             {/* AI Analysis (Page 06) */}
             <button
               type="button"
-              onClick={() => setActiveTab('analysis')}
+              onClick={() => handleTabChange('analysis')}
               className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition cursor-pointer ${
                 activeTab === 'analysis'
                   ? 'bg-[#00DF89] text-[#071311] font-bold shadow-sm'
@@ -211,7 +262,7 @@ export const App: React.FC = () => {
             {/* Review & Approve (Page 05/08) */}
             <button
               type="button"
-              onClick={() => setActiveTab('review')}
+              onClick={() => handleTabChange('review')}
               className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition cursor-pointer ${
                 activeTab === 'review'
                   ? 'bg-[#00DF89] text-[#071311] font-bold shadow-sm'
@@ -234,7 +285,7 @@ export const App: React.FC = () => {
             {/* Action Board (Page 09) */}
             <button
               type="button"
-              onClick={() => setActiveTab('actions')}
+              onClick={() => handleTabChange('actions')}
               className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition cursor-pointer ${
                 activeTab === 'actions'
                   ? 'bg-[#00DF89] text-[#071311] font-bold shadow-sm'
@@ -257,7 +308,7 @@ export const App: React.FC = () => {
             {/* Settings / Auth */}
             <button
               type="button"
-              onClick={() => setActiveTab('settings')}
+              onClick={() => handleTabChange('settings')}
               className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition cursor-pointer ${
                 activeTab === 'settings'
                   ? 'bg-[#00DF89] text-[#071311] font-bold shadow-sm'
@@ -283,7 +334,7 @@ export const App: React.FC = () => {
           <div className="p-4 border-t border-[#122421]">
             {user ? (
               <div
-                onClick={() => setActiveTab('settings')}
+                onClick={() => handleTabChange('settings')}
                 className="flex items-center gap-3 p-2 rounded-xl hover:bg-[#0C1A18] cursor-pointer transition"
               >
                 <div className="w-9 h-9 rounded-full bg-[#00DF89] text-[#071311] font-bold text-xs flex items-center justify-center shrink-0">
@@ -296,7 +347,7 @@ export const App: React.FC = () => {
               </div>
             ) : (
               <div
-                onClick={() => setActiveTab('settings')}
+                onClick={() => handleTabChange('settings')}
                 className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-[#0C1A18] cursor-pointer transition border border-dashed border-[#162E2A]"
               >
                 <div className="w-8 h-8 rounded-full bg-[#162E2A] text-slate-400 font-bold text-xs flex items-center justify-center shrink-0">
@@ -357,7 +408,7 @@ export const App: React.FC = () => {
             {/* + New Inspection (Mint Green Button Exact from PDF) */}
             <button
               type="button"
-              onClick={() => setActiveTab('capture')}
+              onClick={() => handleTabChange('capture')}
               className="px-4 py-1.5 rounded-xl bg-[#00DF89] hover:bg-[#00C476] text-[#071311] font-bold text-xs flex items-center gap-1.5 transition shadow-sm cursor-pointer"
             >
               <span>+</span>
@@ -368,7 +419,7 @@ export const App: React.FC = () => {
             {user ? (
               <button
                 type="button"
-                onClick={() => setActiveTab('settings')}
+                onClick={() => handleTabChange('settings')}
                 title="Account Settings"
                 className="w-8 h-8 rounded-full bg-[#00DF89] text-[#071311] font-black text-xs flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-[#00DF89]/50 transition"
               >
@@ -377,7 +428,7 @@ export const App: React.FC = () => {
             ) : (
               <button
                 type="button"
-                onClick={() => setActiveTab('settings')}
+                onClick={() => navigate('/signin')}
                 className="px-3.5 py-1.5 rounded-xl border border-[#00DF89]/40 bg-[#00DF89]/10 hover:bg-[#00DF89]/20 text-[#00DF89] font-bold text-xs flex items-center gap-1.5 transition cursor-pointer"
               >
                 Sign In
@@ -388,18 +439,9 @@ export const App: React.FC = () => {
 
         {/* Scrollable Viewport */}
         <main className="flex-1 overflow-y-auto p-8">
-          {activeTab === 'landing' && (
-            <div className="-m-8">
-              <LandingPageView
-                onLaunchDashboard={() => setActiveTab('dashboard')}
-                onSignIn={() => setActiveTab('settings')}
-                onExploreAI={() => setActiveTab('analysis')}
-              />
-            </div>
-          )}
-          {activeTab === 'dashboard' && <DashboardView onNavigate={(t) => setActiveTab(t as Tab)} workspace={workspace} />}
+          {activeTab === 'dashboard' && <DashboardView onNavigate={(t) => handleTabChange(t as Tab)} workspace={workspace} />}
           {activeTab === 'capture' && <CaptureView initialSite={workspace} />}
-          {activeTab === 'history' && <HistoryView onNavigate={(t) => setActiveTab(t as Tab)} />}
+          {activeTab === 'history' && <HistoryView onNavigate={(t) => handleTabChange(t as Tab)} />}
           {activeTab === 'actions' && <ActionsView />}
           {activeTab === 'analysis' && <AnalysisView />}
           {activeTab === 'review' && <ReviewView />}
