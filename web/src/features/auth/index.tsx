@@ -3,7 +3,7 @@ import { useAuth } from './useAuth';
 import { isFirebaseConfigured } from '../../lib/firebase';
 
 // Owner: Humna (humna/web-login) - Exact 100% Replication of PDF Page 10 (Sign-in Screen)
-export const AuthView: React.FC = () => {
+export const AuthView: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
   const {
     user,
     loading,
@@ -194,6 +194,18 @@ export const AuthView: React.FC = () => {
       {/* ================= RIGHT SIDE: AUTH FORM (PAGE 10 RIGHT HALF) ================= */}
       <div className="lg:w-5/12 bg-[#081211] p-8 lg:p-16 flex flex-col justify-center items-center">
         <div className="w-full max-w-md space-y-6">
+          {/* Back Link (Exact from Page 10) */}
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="text-xs font-mono text-slate-400 hover:text-[#00DF89] flex items-center gap-1.5 transition cursor-pointer mb-2"
+            >
+              <span>&larr;</span>
+              <span>Back to FieldGuard</span>
+            </button>
+          )}
+
           {/* Header Title Section (Exact from Page 10) */}
           <div>
             <div className="text-[11px] font-mono uppercase font-bold tracking-widest text-[#00DF89]">

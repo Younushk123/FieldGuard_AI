@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { LandingPageView } from './features/landing/index.tsx';
 import { DashboardView } from './features/dashboard/index.tsx';
 import { CaptureView } from './features/capture/index.tsx';
 import { HistoryView } from './features/history/index.tsx';
@@ -8,7 +9,7 @@ import { ReviewView } from './features/review/index.tsx';
 import { AuthView } from './features/auth/index.tsx';
 import { useAuth } from './features/auth/useAuth';
 
-type Tab = 'dashboard' | 'capture' | 'history' | 'review' | 'actions' | 'analysis' | 'settings';
+type Tab = 'landing' | 'dashboard' | 'capture' | 'history' | 'review' | 'actions' | 'analysis' | 'settings';
 
 function useOnline() {
   const [online, setOnline] = useState(navigator.onLine);
@@ -27,11 +28,12 @@ function useOnline() {
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
+  const [authMode, setAuthMode] = useState<'landing' | 'signin'>('landing');
   const [workspace] = useState('Plant 2');
   const { user, loading } = useAuth();
   const online = useOnline();
 
-  // Full-page Authentication Gate: Unauthenticated users MUST sign in first
+  // Loading state
   if (loading) {
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-[#070E0D] text-slate-400 font-mono text-xs">
@@ -43,12 +45,23 @@ export const App: React.FC = () => {
     );
   }
 
+  // Unauthenticated visitors: Show Landing Page (Page 02) or Sign-in (Page 10)
   if (!user) {
-    return <AuthView />;
+    if (authMode === 'signin') {
+      return <AuthView onBack={() => setAuthMode('landing')} />;
+    }
+    return (
+      <LandingPageView
+        onLaunchDashboard={() => setAuthMode('signin')}
+        onSignIn={() => setAuthMode('signin')}
+        onExploreAI={() => setAuthMode('signin')}
+      />
+    );
   }
 
   const getBreadcrumb = () => {
     switch (activeTab) {
+      case 'landing': return 'Public Landing Page';
       case 'dashboard': return 'Safety overview';
       case 'capture': return 'New inspection';
       case 'history': return 'Safety overview';
@@ -104,6 +117,29 @@ export const App: React.FC = () => {
 
           {/* Navigation Links */}
           <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
+            {/* Public Landing Page */}
+            <button
+              type="button"
+              onClick={() => setActiveTab('landing')}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition cursor-pointer ${
+                activeTab === 'landing'
+                  ? 'bg-[#00DF89] text-[#071311] font-bold shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-[#0C1A18]'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                </svg>
+                <span>Landing Page</span>
+              </div>
+              <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${
+                activeTab === 'landing' ? 'bg-[#071311]/20 text-[#071311]' : 'bg-[#00DF89]/10 text-[#00DF89]'
+              }`}>
+                Page 02
+              </span>
+            </button>
+
             {/* Dashboard */}
             <button
               type="button"
@@ -343,6 +379,15 @@ export const App: React.FC = () => {
 
         {/* Scrollable Viewport */}
         <main className="flex-1 overflow-y-auto p-8">
+          {activeTab === 'landing' && (
+            <div className="-m-8">
+              <LandingPageView
+                onLaunchDashboard={() => setActiveTab('dashboard')}
+                onSignIn={() => setActiveTab('settings')}
+                onExploreAI={() => setActiveTab('analysis')}
+              />
+            </div>
+          )}
           {activeTab === 'dashboard' && <DashboardView onNavigate={(t) => setActiveTab(t as Tab)} />}
           {activeTab === 'capture' && <CaptureView />}
           {activeTab === 'history' && <HistoryView onNavigate={(t) => setActiveTab(t as Tab)} />}
