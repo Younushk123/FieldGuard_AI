@@ -50,6 +50,7 @@ export const CaptureView: React.FC = () => {
   const [result, setResult] = useState<CaptureResult | null>(null);
   const [error, setError] = useState('');
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [forceCloud, setForceCloud] = useState(false);
 
   async function handleEnableOffline() {
     setOffline('loading');
@@ -70,7 +71,7 @@ export const CaptureView: React.FC = () => {
     setResult(null);
     setSaveState('idle');
     try {
-      setResult(await classify(report));
+      setResult(await classify(report, forceCloud));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -126,7 +127,13 @@ export const CaptureView: React.FC = () => {
       </div>
 
       <div className="flex items-center justify-between">
-        <span className="text-xs text-slate-500 font-mono">Schema v1.0</span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-slate-500 font-mono">Schema v1.0</span>
+          <label className="flex items-center gap-1 text-xs text-slate-600">
+            <input type="checkbox" checked={forceCloud} onChange={(e) => setForceCloud(e.target.checked)} />
+            Force cloud
+          </label>
+        </div>
         <button
           onClick={handleAnalyze}
           disabled={busy || report.trim().length === 0}
