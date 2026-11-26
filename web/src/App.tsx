@@ -44,24 +44,7 @@ export const App: React.FC = () => {
   }
 
   if (!user) {
-    return (
-      <div className="min-h-screen w-screen flex flex-col items-center justify-center bg-[#070E0D] py-12 px-6 overflow-y-auto">
-        <div className="mb-6 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#0F2923] border border-[#00DF89]/30 flex items-center justify-center text-[#00DF89] shadow-sm">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-            </svg>
-          </div>
-          <div>
-            <div className="font-extrabold text-base tracking-tight text-white flex items-center gap-1.5">
-              FieldGuard <span className="text-[#00DF89] text-xs font-mono px-1.5 py-0.5 rounded bg-[#00DF89]/10 border border-[#00DF89]/30">AI</span>
-            </div>
-            <div className="text-[10px] text-slate-500 font-mono tracking-wider">INDUSTRIAL SAFETY PLATFORM</div>
-          </div>
-        </div>
-        <AuthView />
-      </div>
-    );
+    return <AuthView />;
   }
 
   const getBreadcrumb = () => {
