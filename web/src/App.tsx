@@ -345,7 +345,7 @@ export const App: React.FC = () => {
         <main className="flex-1 overflow-y-auto p-8">
           {activeTab === 'dashboard' && <DashboardView onNavigate={(t) => setActiveTab(t as Tab)} />}
           {activeTab === 'capture' && <CaptureView />}
-          {activeTab === 'history' && <HistoryView />}
+          {activeTab === 'history' && <HistoryView onNavigate={(t) => setActiveTab(t as Tab)} />}
           {activeTab === 'actions' && <ActionsView />}
           {activeTab === 'analysis' && <AnalysisView />}
           {activeTab === 'review' && <ReviewView />}
