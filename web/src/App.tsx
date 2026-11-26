@@ -45,7 +45,7 @@ export const App: React.FC = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen w-screen flex flex-col items-center justify-center bg-[#070E0D] p-6">
+      <div className="min-h-screen w-screen flex flex-col items-center justify-center bg-[#070E0D] py-12 px-6 overflow-y-auto">
         <div className="mb-6 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-[#0F2923] border border-[#00DF89]/30 flex items-center justify-center text-[#00DF89] shadow-sm">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.2">
