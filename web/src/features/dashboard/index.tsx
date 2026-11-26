@@ -162,7 +162,8 @@ const SAMPLE_FINDINGS: InspectionDoc[] = [
 const SiteModel: React.FC<{
   findings: InspectionDoc[];
   onNavigate?: (t: Target) => void;
-}> = ({ findings, onNavigate }) => {
+  workspace?: string;
+}> = ({ findings, onNavigate, workspace = 'Plant 2' }) => {
   const displayFindings = findings.length > 0 ? findings : SAMPLE_FINDINGS;
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filterCat, setFilterCat] = useState<string>('All hazards');
@@ -178,7 +179,7 @@ const SiteModel: React.FC<{
             SITE MODEL · SAMPLE FINDINGS
           </div>
           <h2 className="text-xl font-bold text-white tracking-tight mt-0.5">
-            Plant 2 · North assembly
+            {workspace} · Facility overview
           </h2>
           <p className="text-xs text-slate-400">
             Interactive facility overview · select a marker to inspect a demo finding.
@@ -398,7 +399,7 @@ const SiteModel: React.FC<{
   );
 };
 
-export const DashboardView: React.FC<{ onNavigate?: (t: Target) => void }> = ({ onNavigate }) => {
+export const DashboardView: React.FC<{ onNavigate?: (t: Target) => void; workspace?: string }> = ({ onNavigate, workspace = 'Plant 2' }) => {
   const { user, loading } = useAuth();
   const [inspections, setInspections] = useState<InspectionDoc[] | null>(null);
   const [actions, setActions] = useState<ActionDoc[] | null>(null);
@@ -472,7 +473,7 @@ export const DashboardView: React.FC<{ onNavigate?: (t: Target) => void }> = ({ 
         <Kpi
           label="Detected hazards"
           value={stats.hazards > 0 ? stats.hazards : 18}
-          sub="Sample data · Plant 2"
+          sub={`Sample data · ${workspace}`}
           color="#f59e0b"
           icon="⚠️"
         />
@@ -493,7 +494,7 @@ export const DashboardView: React.FC<{ onNavigate?: (t: Target) => void }> = ({ 
       </div>
 
       {/* 3D Facility Site Model (ALWAYS Rendered - Exact Page 03) */}
-      <SiteModel findings={stats.findings} onNavigate={go} />
+      <SiteModel findings={stats.findings} onNavigate={go} workspace={workspace} />
 
       {/* Charts Row: Risk Overview + Hazards by Category */}
       <div className="grid lg:grid-cols-2 gap-5">

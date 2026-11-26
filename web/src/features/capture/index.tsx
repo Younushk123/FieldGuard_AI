@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { classify, enableOfflineAI, type CaptureResult } from './ai';
 import { saveInspection } from './save';
 
@@ -23,12 +23,26 @@ const LEVEL_STYLE: Record<string, { pill: string; badge: string }> = {
 };
 
 // Owner: Younus / Humna - 100% Exact match of Page 06 (New inspection workflow)
-export const CaptureView: React.FC = () => {
+export const CaptureView: React.FC<{ initialSite?: string }> = ({ initialSite }) => {
   const [report, setReport] = useState('');
-  const [site] = useState('Plant 2, Industrial Zone');
+  const [site, setSite] = useState(
+    initialSite === 'Plant 1' ? 'Plant 1, Assembly Line' :
+    initialSite === 'Plant 3' ? 'Plant 3, Chemical Storage' :
+    initialSite === 'Offshore Delta' ? 'Offshore Platform Delta' :
+    'Plant 2, Industrial Zone'
+  );
   const [location, setLocation] = useState('Level 3, north platform');
   const [selectedCategory, setSelectedCategory] = useState<string>('Fall');
   const [forceCloud, setForceCloud] = useState(false);
+
+  useEffect(() => {
+    if (initialSite) {
+      if (initialSite === 'Plant 1') setSite('Plant 1, Assembly Line');
+      else if (initialSite === 'Plant 3') setSite('Plant 3, Chemical Storage');
+      else if (initialSite === 'Offshore Delta') setSite('Offshore Platform Delta');
+      else setSite('Plant 2, Industrial Zone');
+    }
+  }, [initialSite]);
 
   const [offline, setOffline] = useState<OfflineState>('off');
   const [progress, setProgress] = useState(0);
@@ -144,9 +158,18 @@ export const CaptureView: React.FC = () => {
           {/* Site Selector */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-slate-300">Site</label>
-            <div className="w-full bg-[#081211] border border-[#162E2A] rounded-xl px-3.5 py-2.5 text-xs text-white flex items-center justify-between">
-              <span>{site}</span>
-              <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="relative">
+              <select
+                value={site}
+                onChange={(e) => setSite(e.target.value)}
+                className="w-full bg-[#081211] border border-[#162E2A] rounded-xl px-3.5 py-2.5 text-xs text-white appearance-none focus:outline-none focus:border-[#00DF89] cursor-pointer hover:border-[#00DF89]/40 transition pr-9"
+              >
+                <option value="Plant 2, Industrial Zone" className="bg-[#081211] text-white">Plant 2, Industrial Zone</option>
+                <option value="Plant 1, Assembly Line" className="bg-[#081211] text-white">Plant 1, Assembly Line</option>
+                <option value="Plant 3, Chemical Storage" className="bg-[#081211] text-white">Plant 3, Chemical Storage</option>
+                <option value="Offshore Platform Delta" className="bg-[#081211] text-white">Offshore Platform Delta</option>
+              </select>
+              <svg className="w-4 h-4 text-slate-500 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
               </svg>
             </div>

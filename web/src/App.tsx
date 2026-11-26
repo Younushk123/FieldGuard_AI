@@ -29,7 +29,7 @@ function useOnline() {
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [authMode, setAuthMode] = useState<'landing' | 'signin'>('landing');
-  const [workspace] = useState('Plant 2');
+  const [workspace, setWorkspace] = useState('Plant 2');
   const { user, loading } = useAuth();
   const online = useOnline();
 
@@ -104,14 +104,23 @@ export const App: React.FC = () => {
 
           {/* Plant / Workspace Selector Dropdown (from PDF Page 04) */}
           <div className="px-5 py-4">
-            <div className="w-full bg-[#0C1A18] border border-[#162E2A] rounded-xl px-3.5 py-2.5 flex items-center justify-between text-xs cursor-pointer hover:border-[#00DF89]/40 transition">
-              <div className="flex items-center gap-2 min-w-0">
+            <div className="relative">
+              <select
+                value={workspace}
+                onChange={(e) => setWorkspace(e.target.value)}
+                className="w-full bg-[#0C1A18] border border-[#162E2A] rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-200 appearance-none focus:outline-none focus:border-[#00DF89] cursor-pointer hover:border-[#00DF89]/40 transition pr-9"
+              >
+                <option value="Plant 2" className="bg-[#0C1A18] text-white">Plant 2 (Industrial Zone)</option>
+                <option value="Plant 1" className="bg-[#0C1A18] text-white">Plant 1 (Assembly Line)</option>
+                <option value="Plant 3" className="bg-[#0C1A18] text-white">Plant 3 (Chemical Storage)</option>
+                <option value="Offshore Delta" className="bg-[#0C1A18] text-white">Offshore Platform Delta</option>
+              </select>
+              <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-[#00DF89] animate-pulse"></span>
-                <span className="font-semibold text-slate-200 truncate">{workspace} (Active)</span>
+                <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
               </div>
-              <svg className="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
             </div>
           </div>
 
@@ -388,8 +397,8 @@ export const App: React.FC = () => {
               />
             </div>
           )}
-          {activeTab === 'dashboard' && <DashboardView onNavigate={(t) => setActiveTab(t as Tab)} />}
-          {activeTab === 'capture' && <CaptureView />}
+          {activeTab === 'dashboard' && <DashboardView onNavigate={(t) => setActiveTab(t as Tab)} workspace={workspace} />}
+          {activeTab === 'capture' && <CaptureView initialSite={workspace} />}
           {activeTab === 'history' && <HistoryView onNavigate={(t) => setActiveTab(t as Tab)} />}
           {activeTab === 'actions' && <ActionsView />}
           {activeTab === 'analysis' && <AnalysisView />}
