@@ -29,7 +29,7 @@ service cloud.firestore {
           'ownerId', 'createdAt', 'updatedAt', 'reportText', 'schemaVersion',
           'hazardCategory', 'likelihood', 'severity', 'summary',
           'suggestedAction', 'riskScore', 'riskLevel', 'inferenceSource',
-          'status', 'reviewedBy', 'reviewedAt', 'analysis'
+          'status', 'reviewedBy', 'reviewedAt', 'analysis', 'inferenceMs'
         ])
         && d.keys().hasAll([
           'ownerId', 'createdAt', 'updatedAt', 'reportText', 'schemaVersion',
@@ -57,7 +57,8 @@ service cloud.firestore {
         && d.status in ['pending_review', 'approved']
         && (!('reviewedBy' in d) || d.reviewedBy is string)
         && (!('reviewedAt' in d) || d.reviewedAt is timestamp)
-        && (!('analysis' in d) || validAnalysis(d.analysis));
+        && (!('analysis' in d) || validAnalysis(d.analysis))
+        && (!('inferenceMs' in d) || (d.inferenceMs is int && d.inferenceMs >= 0 && d.inferenceMs <= 120000));
     }
 
     match /inspections/{id} {
