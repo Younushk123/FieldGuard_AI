@@ -145,7 +145,11 @@ export const App: React.FC = () => {
       <aside className="w-64 bg-[#081211] border-r border-[#122421] flex flex-col justify-between shrink-0 z-20">
         <div className="flex flex-col h-full">
           {/* Logo & Brand Header */}
-          <div className="h-20 px-6 flex items-center gap-3 border-b border-[#122421]">
+          <div
+            onClick={() => navigate('/')}
+            className="h-20 px-6 flex items-center gap-3 border-b border-[#122421] cursor-pointer hover:bg-[#0C1A18]/50 transition"
+            title="FieldGuard AI - Public Home"
+          >
             <div className="w-9 h-9 rounded-xl bg-[#0F2923] border border-[#00DF89]/30 flex items-center justify-center text-[#00DF89] shadow-sm">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
@@ -183,23 +187,6 @@ export const App: React.FC = () => {
 
           {/* Navigation Links */}
           <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
-            {/* Public Landing Page */}
-            <button
-              type="button"
-              onClick={() => navigate('/')}
-              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-[#0C1A18] transition cursor-pointer"
-            >
-              <div className="flex items-center gap-3">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                </svg>
-                <span>Landing Page</span>
-              </div>
-              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#00DF89]/10 text-[#00DF89]">
-                Public
-              </span>
-            </button>
-
             {/* Dashboard */}
             <button
               type="button"
