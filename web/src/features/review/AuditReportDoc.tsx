@@ -86,32 +86,32 @@ export const AuditReportPrintDoc: React.FC<{
   onPrint: () => void;
 }> = ({ data = SAMPLE_AUDIT_REPORT, onClose, onPrint }) => {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md overflow-y-auto">
-      <div className="bg-[#0C1A18] border border-[#162E2A] rounded-2xl max-w-4xl w-full p-6 sm:p-10 text-slate-200 shadow-2xl relative my-8">
-        {/* Top Control Bar (Hidden during Print) */}
-        <div className="no-print flex items-center justify-between pb-6 border-b border-[#162E2A] mb-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md overflow-y-auto">
+      <div className="bg-[#0C1A18] border border-[#162E2A] rounded-2xl max-w-4xl w-full p-4 sm:p-8 text-slate-200 shadow-2xl relative my-auto">
+        {/* Sticky Top Control Bar (Always visible, Hidden during Print) */}
+        <div className="no-print sticky -top-4 sm:-top-8 z-30 bg-[#0C1A18]/95 backdrop-blur-md flex flex-wrap items-center justify-between py-3 px-2 border-b border-[#162E2A] mb-6 gap-3">
           <div>
             <div className="text-[10px] font-mono text-[#00DF89] font-bold uppercase tracking-widest">
               OFFICIAL OSHA / HSE REGULATORY COMPLIANCE EXPORT
             </div>
-            <h2 className="text-xl font-bold text-white mt-1">
-              Safety Audit Inspection Certificate · {data.reportId}
+            <h2 className="text-base sm:text-lg font-bold text-white">
+              Inspection Certificate · {data.reportId}
             </h2>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-[#081211] border border-[#162E2A] text-slate-300 hover:text-white text-xs font-medium cursor-pointer transition"
+              className="px-3.5 py-2 rounded-xl bg-[#081211] border border-[#162E2A] text-slate-300 hover:text-white text-xs font-medium cursor-pointer transition"
             >
               Close
             </button>
             <button
               type="button"
               onClick={onPrint}
-              className="px-5 py-2 rounded-xl bg-[#00DF89] hover:bg-[#00C476] text-[#071311] font-bold text-xs cursor-pointer shadow-md transition flex items-center gap-2"
+              className="px-4 py-2 rounded-xl bg-[#00DF89] hover:bg-[#00C476] text-[#071311] font-bold text-xs cursor-pointer shadow-md transition flex items-center gap-1.5"
             >
-              <span>🖨️ Print / Save as PDF</span>
+              <span>🖨️ Download / Save as PDF</span>
             </button>
           </div>
         </div>
@@ -237,6 +237,29 @@ export const AuditReportPrintDoc: React.FC<{
                 <div className="text-[10px] font-mono text-slate-500">Official FieldGuard AI Compliance Stamp</div>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Bottom Download Bar (Extra convenience, Hidden during Print) */}
+        <div className="no-print pt-6 flex items-center justify-between border-t border-[#162E2A] mt-6">
+          <div className="text-xs text-slate-400 font-mono">
+            Print dialog will save as PDF directly to your device.
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 rounded-xl bg-[#081211] border border-[#162E2A] text-slate-300 hover:text-white text-xs font-medium cursor-pointer"
+            >
+              Close
+            </button>
+            <button
+              type="button"
+              onClick={onPrint}
+              className="px-5 py-2.5 rounded-xl bg-[#00DF89] hover:bg-[#00C476] text-[#071311] font-bold text-xs cursor-pointer shadow-lg flex items-center gap-1.5"
+            >
+              <span>🖨️ Download / Save as PDF</span>
+            </button>
           </div>
         </div>
       </div>
