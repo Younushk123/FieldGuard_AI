@@ -9,6 +9,7 @@
 *debug-token*
 .firebase/
 firebase-debug.log
+*devSeed.ts*
 
 # Node / Web
 node_modules/

@@ -36,4 +36,5 @@ export interface InspectionDoc {
   status: InspectionStatus;
   reviewedBy?: string;
   reviewedAt?: Timestamp;
+  inferenceMs?: number;
 }

@@ -64,4 +64,5 @@ export interface InspectionRecord {
   analysis?: CloudAnalysis;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+  inferenceMs?: number;
 }

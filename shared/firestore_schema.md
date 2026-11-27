@@ -15,6 +15,7 @@ Field names match classifier-schema v1.0 and cloud-analyst-schema v1.0.
 | riskScore | int | likelihood × severity, app-computed |
 | riskLevel | string | low 1-4, medium 5-9, high 10-15, critical 16-25, app-computed |
 | inferenceSource | string | on-device or cloud, app-set |
+| inferenceMS | int,optional | model time in milliseconds, 0-120000, app-measured|
 | status | string | pending_review or approved |
 | reviewedBy, reviewedAt | string, timestamp | set on approval |
 | analysis (optional) | map | cloud only, see below |
