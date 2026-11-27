@@ -6,6 +6,8 @@ Field names match classifier-schema v1.0 and cloud-analyst-schema v1.0.
 | Field | Type | Notes |
 |---|---|---|
 | ownerId | string | auth uid |
+| site | string, optional | selected facility; e.g. "Plant 1, Assembly Line" |
+| location | string, optional | inspector-entered location within the site |
 | createdAt, updatedAt | timestamp | |
 | reportText | string | the inspector's report |
 | schemaVersion | string | "1.0" |

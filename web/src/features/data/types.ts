@@ -1,5 +1,5 @@
 import type { Timestamp } from 'firebase/firestore';
-import type { HazardCategory, RiskLevel, InferenceSource, InspectionStatus, Recommendation } from '../../types';
+import type { HazardCategory, RiskLevel, InferenceSource, InspectionStatus, Recommendation, CloudAnalysis } from '../../types';
 
 export type ActionStatus = 'open' | 'in_progress' | 'resolved';
 export type ActionPriority = Recommendation['priority'];
@@ -21,6 +21,8 @@ export interface ActionDoc {
 export interface InspectionDoc {
   id: string;
   ownerId: string;
+  site?: string;
+  location?: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
   reportText: string;
@@ -36,5 +38,6 @@ export interface InspectionDoc {
   status: InspectionStatus;
   reviewedBy?: string;
   reviewedAt?: Timestamp;
+  analysis?: CloudAnalysis;
   inferenceMs?: number;
 }

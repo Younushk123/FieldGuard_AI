@@ -41,12 +41,11 @@ export function computeStats(inspections: InspectionDoc[], actions: ActionDoc[],
     highRisk: highRisk.length,
     highRiskPending: highRisk.filter((i) => i.status === 'pending_review').length,
     openActions: openActions.length,
-    dueSoon: openActions.filter((a) => a.deadline && ms(a.deadline) <= now + 7 * DAY).length,
+    dueSoon: openActions.filter((a) => a.deadline && ms(a.deadline) >= now && ms(a.deadline) <= now + 7 * DAY).length,
     byLevel,
     categories,
     categoryTotal,
-    recent: newest.filter((i) => ms(i.createdAt) >= now - 3 * DAY).slice(0, 10),
-    findings: [...hazards].sort((a, b) => b.riskScore - a.riskScore).slice(0, 5),
+    recent: newest.slice(0, 10),
   };
 }
 export type Stats = ReturnType<typeof computeStats>;

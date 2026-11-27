@@ -48,6 +48,8 @@ export interface CloudAnalysis {
 export interface InspectionRecord {
   id?: string;
   ownerId?: string;
+  site?: string;
+  location?: string;
   reportText: string;
   schemaVersion: '1.0';
   hazardCategory: HazardCategory;

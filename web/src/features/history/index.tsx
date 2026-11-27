@@ -3,6 +3,7 @@ import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import '../../lib/firebase';
 import { subscribeInspections } from '../data/api';
 import type { InspectionDoc } from '../data/types';
+import { inspectionMatchesWorkspace, WORKSPACE_SITE_NAMES, type Workspace } from '../data/sites.ts';
 
 const CATEGORIES = ['fall', 'electrical', 'fire', 'chemical', 'mechanical', 'ergonomic', 'environmental', 'other'];
 const LEVELS = ['low', 'medium', 'high', 'critical'];
@@ -21,7 +22,7 @@ const STATUS_PILL: Record<string, string> = {
 };
 
 // Owner: Younus / Humna - 100% Exact match of Page 04 (Inspections register)
-export const HistoryView: React.FC<{ onNavigate?: (tab: string) => void }> = ({ onNavigate }) => {
+export const HistoryView: React.FC<{ workspace: Workspace; onNavigate?: (tab: string, inspectionId?: string) => void }> = ({ workspace, onNavigate }) => {
   const [items, setItems] = useState<InspectionDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -62,9 +63,14 @@ export const HistoryView: React.FC<{ onNavigate?: (tab: string) => void }> = ({ 
     };
   }, []);
 
+  const siteItems = useMemo(
+    () => items.filter((inspection) => inspectionMatchesWorkspace(inspection, workspace)),
+    [items, workspace]
+  );
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return items.filter(
+    return siteItems.filter(
       (i) =>
         (category === 'all' || i.hazardCategory.toLowerCase() === category.toLowerCase()) &&
         (level === 'all' || i.riskLevel === level) &&
@@ -72,7 +78,7 @@ export const HistoryView: React.FC<{ onNavigate?: (tab: string) => void }> = ({ 
         (status === 'all' || i.status === status) &&
         (!q || i.summary.toLowerCase().includes(q) || i.reportText.toLowerCase().includes(q))
     );
-  }, [items, category, level, source, status, search]);
+  }, [siteItems, category, level, source, status, search]);
 
   const hasFilters = category !== 'all' || level !== 'all' || source !== 'all' || status !== 'all' || search !== '';
 
@@ -102,7 +108,7 @@ export const HistoryView: React.FC<{ onNavigate?: (tab: string) => void }> = ({ 
             Inspections
           </h1>
           <p className="text-xs text-slate-400 mt-1">
-            Search, filter, and audit verified hazard records across site facilities.
+            Search, filter, and audit verified hazard records for {WORKSPACE_SITE_NAMES[workspace]}.
           </p>
         </div>
 
@@ -193,6 +199,10 @@ export const HistoryView: React.FC<{ onNavigate?: (tab: string) => void }> = ({ 
             <div className="text-sm font-bold text-white">No inspections recorded yet</div>
             <p className="text-slate-500">Go to "New Inspection" to log your first field hazard report.</p>
           </div>
+        ) : siteItems.length === 0 ? (
+          <div className="py-16 text-center text-slate-400 text-xs">
+            No inspections recorded for {WORKSPACE_SITE_NAMES[workspace]}.
+          </div>
         ) : filtered.length === 0 ? (
           <div className="py-16 text-center text-slate-400 text-xs">
             No inspection matches the selected filter criteria.
@@ -203,6 +213,7 @@ export const HistoryView: React.FC<{ onNavigate?: (tab: string) => void }> = ({ 
               <thead>
                 <tr className="border-b border-[#162E2A] text-slate-500 uppercase font-mono text-[10px] tracking-wider">
                   <th className="py-3 px-5 font-semibold">Inspection ID</th>
+                  <th className="py-3 px-4 font-semibold">Site</th>
                   <th className="py-3 px-4 font-semibold">Hazard</th>
                   <th className="py-3 px-4 font-semibold">Category</th>
                   <th className="py-3 px-4 font-semibold">Date</th>
@@ -217,6 +228,9 @@ export const HistoryView: React.FC<{ onNavigate?: (tab: string) => void }> = ({ 
                   <tr key={i.id} className="hover:bg-[#0F2923]/30 transition group">
                     <td className="py-3.5 px-5 font-mono text-[#00DF89] font-bold">
                       {`INS-${i.id.slice(0, 4).toUpperCase()}`}
+                    </td>
+                    <td className="py-3.5 px-4 text-slate-300 whitespace-nowrap">
+                      {WORKSPACE_SITE_NAMES[workspace]}
                     </td>
                     <td className="py-3.5 px-4 font-medium text-white max-w-sm truncate">
                       {i.summary || i.reportText}
@@ -254,7 +268,7 @@ export const HistoryView: React.FC<{ onNavigate?: (tab: string) => void }> = ({ 
                     <td className="py-3.5 px-5 text-right whitespace-nowrap">
                       <button
                         type="button"
-                        onClick={() => onNavigate?.('review')}
+                        onClick={() => onNavigate?.('review', i.id)}
                         className="w-7 h-7 rounded-lg bg-[#081211] hover:bg-[#00DF89] hover:text-[#071311] border border-[#162E2A] inline-flex items-center justify-center text-slate-400 transition cursor-pointer"
                         title="Review finding"
                       >

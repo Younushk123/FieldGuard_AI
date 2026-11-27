@@ -26,7 +26,7 @@ service cloud.firestore {
 
     function validInspection(d) {
       return d.keys().hasOnly([
-          'ownerId', 'createdAt', 'updatedAt', 'reportText', 'schemaVersion',
+          'ownerId', 'site', 'location', 'createdAt', 'updatedAt', 'reportText', 'schemaVersion',
           'hazardCategory', 'likelihood', 'severity', 'summary',
           'suggestedAction', 'riskScore', 'riskLevel', 'inferenceSource',
           'status', 'reviewedBy', 'reviewedAt', 'analysis', 'inferenceMs'
@@ -38,6 +38,8 @@ service cloud.firestore {
           'status'
         ])
         && d.ownerId is string
+        && (!('site' in d) || (d.site is string && d.site.size() > 0 && d.site.size() <= 100))
+        && (!('location' in d) || (d.location is string && d.location.size() <= 200))
         && d.createdAt is timestamp
         && d.updatedAt is timestamp
         && d.reportText is string && d.reportText.size() > 0
@@ -62,7 +64,9 @@ service cloud.firestore {
     }
 
     match /inspections/{id} {
-      allow read: if signedIn() && resource.data.ownerId == request.auth.uid;
+      allow get: if signedIn()
+        && (resource == null || resource.data.ownerId == request.auth.uid);
+      allow list: if signedIn() && resource.data.ownerId == request.auth.uid;
       allow create: if signedIn()
         && request.resource.data.ownerId == request.auth.uid
         && validInspection(request.resource.data);
@@ -98,7 +102,9 @@ service cloud.firestore {
     }
 
     match /actions/{id} {
-      allow read: if signedIn() && resource.data.ownerId == request.auth.uid;
+      allow get: if signedIn()
+        && (resource == null || resource.data.ownerId == request.auth.uid);
+      allow list: if signedIn() && resource.data.ownerId == request.auth.uid;
       allow create: if signedIn()
         && request.resource.data.ownerId == request.auth.uid
         && validAction(request.resource.data);
