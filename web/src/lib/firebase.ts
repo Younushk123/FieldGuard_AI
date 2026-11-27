@@ -35,6 +35,25 @@ if (typeof window !== 'undefined' && import.meta.env.VITE_APPCHECK_DEBUG_TOKEN) 
 }
 
 export const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+
+// Initialize App Check immediately after app initialization (before auth, db, and ai)
+if (typeof window !== 'undefined' && import.meta.env.VITE_APPCHECK_DEBUG_TOKEN) {
+  try {
+    initializeAppCheck(app, {
+      provider: new CustomProvider({
+        getToken: () =>
+          Promise.resolve({
+            token: 'debug-token-active',
+            expireTimeMillis: Date.now() + 60 * 60 * 1000,
+          }),
+      }),
+      isTokenAutoRefreshEnabled: true,
+    });
+  } catch (err) {
+    console.warn('App Check init skipped in current context:', err);
+  }
+}
+
 export const auth = getAuth(app);
 function createDb() {
   try {
@@ -54,21 +73,3 @@ export const remoteConfig = getRemoteConfig(app);
 
 // Initialize Firebase AI Logic with Gemini Developer API backend
 export const ai = getAI(app, { backend: new GoogleAIBackend() });
-
-// Optional App Check initialization in dev mode
-if (typeof window !== 'undefined' && import.meta.env.VITE_APPCHECK_DEBUG_TOKEN) {
-  try {
-    initializeAppCheck(app, {
-      provider: new CustomProvider({
-        getToken: () =>
-          Promise.resolve({
-            token: 'debug-token-active',
-            expireTimeMillis: Date.now() + 60 * 60 * 1000,
-          }),
-      }),
-      isTokenAutoRefreshEnabled: true,
-    });
-  } catch (err) {
-    console.warn('App Check init skipped in current context:', err);
-  }
-}
