@@ -7,23 +7,32 @@ body {
 }
 
 @media print {
-  /* Hide sidebar and top navigation buttons during PDF export */
+  /* Hide dashboard shell, sidebars, header and navigation buttons */
   aside,
-  header button,
-  header .text-\[10px\],
+  header,
+  main,
   .no-print {
     display: none !important;
   }
 
   body {
     background-color: #070E0D !important;
+    color: #e2e8f0 !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  /* Make main content full width for document rendering */
-  main {
+  /* Make modal background transparent and show audit doc full screen */
+  .fixed.inset-0 {
+    position: static !important;
+    background: transparent !important;
     padding: 0 !important;
-    overflow: visible !important;
+  }
+
+  #printable-audit-doc {
+    border: none !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
 }

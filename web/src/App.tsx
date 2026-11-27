@@ -6,6 +6,7 @@ import { HistoryView } from './features/history/index.tsx';
 import { ActionsView } from './features/actions/index.tsx';
 import { AnalysisView } from './features/analysis/index.tsx';
 import { ReviewView } from './features/review/index.tsx';
+import { AuditReportPrintDoc } from './features/review/AuditReportDoc.tsx';
 import { AuthView } from './features/auth/index.tsx';
 import { useAuth } from './features/auth/useAuth';
 
@@ -60,6 +61,7 @@ function useOnline() {
 export const App: React.FC = () => {
   const [routeInfo, setRouteInfo] = useState(() => getRouteFromPath(window.location.pathname));
   const [workspace, setWorkspace] = useState('Plant 2');
+  const [showAuditDoc, setShowAuditDoc] = useState(false);
   const { user, loading } = useAuth();
   const online = useOnline();
 
@@ -83,8 +85,8 @@ export const App: React.FC = () => {
   };
 
   const handleExportPDF = () => {
-    // Professional safety audit PDF export using native browser print pipeline
-    window.print();
+    // Open dedicated formal audit report certificate modal for printing
+    setShowAuditDoc(true);
   };
 
   // Loading state
@@ -442,6 +444,14 @@ export const App: React.FC = () => {
           {activeTab === 'settings' && <AuthView />}
         </main>
       </div>
+
+      {/* Formal Audit Inspection PDF Certificate Modal */}
+      {showAuditDoc && (
+        <AuditReportPrintDoc
+          onClose={() => setShowAuditDoc(false)}
+          onPrint={() => window.print()}
+        />
+      )}
     </div>
   );
 };
