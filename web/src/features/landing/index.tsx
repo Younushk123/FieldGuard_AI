@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 
-// Exact 100% Replication of PDF Page 02: Landing Page
+// Exact 100% Replication of PDF Page 02: Landing Page + Interactive How It Works
 export const LandingPageView: React.FC<{
   onLaunchDashboard: () => void;
   onSignIn: () => void;
   onExploreAI?: () => void;
 }> = ({ onLaunchDashboard, onSignIn, onExploreAI }) => {
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
   return (
     <div className="min-h-screen w-full bg-[#070E0D] text-slate-200 flex flex-col justify-between overflow-x-hidden select-none relative">
       {/* Background Subtle Isometric Grid Pattern */}
@@ -37,7 +38,14 @@ export const LandingPageView: React.FC<{
         <nav className="hidden md:flex items-center gap-8 text-xs font-medium text-slate-400">
           <button onClick={onLaunchDashboard} className="hover:text-white transition cursor-pointer">Platform</button>
           <button onClick={onExploreAI || onLaunchDashboard} className="hover:text-white transition cursor-pointer">AI intelligence</button>
-          <button onClick={onLaunchDashboard} className="hover:text-white transition cursor-pointer">How it works</button>
+          <button
+            type="button"
+            onClick={() => setShowHowItWorks(true)}
+            className="hover:text-[#00DF89] text-slate-300 font-semibold transition cursor-pointer flex items-center gap-1.5"
+          >
+            <span>How it works</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-[#00DF89]"></span>
+          </button>
         </nav>
 
         {/* Right Action Buttons */}
@@ -84,11 +92,11 @@ export const LandingPageView: React.FC<{
             </button>
             <button
               type="button"
-              onClick={onLaunchDashboard}
-              className="px-5 py-3.5 rounded-xl bg-[#081211] border border-[#162E2A] text-slate-300 hover:text-white text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
+              onClick={() => setShowHowItWorks(true)}
+              className="px-5 py-3.5 rounded-xl bg-[#081211] border border-[#162E2A] text-slate-300 hover:text-white text-xs font-medium flex items-center gap-1.5 transition cursor-pointer hover:border-[#00DF89]/40"
             >
-              <span>Explore platform</span>
-              <span>&darr;</span>
+              <span>Explore how it works</span>
+              <span>&rarr;</span>
             </button>
           </div>
 
@@ -246,6 +254,154 @@ export const LandingPageView: React.FC<{
         </div>
         <div>01 — HUMAN-IN-THE-LOOP BY DESIGN</div>
       </footer>
+
+      {/* ================= INTERACTIVE HOW FIELDGUARD AI WORKS MODAL ================= */}
+      {showHowItWorks && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md animate-fadeIn">
+          <div className="bg-[#0C1A18] border border-[#162E2A] rounded-3xl max-w-4xl w-full p-6 sm:p-8 relative shadow-2xl overflow-y-auto max-h-[90vh] space-y-6">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between border-b border-[#162E2A] pb-5">
+              <div>
+                <div className="text-[10px] font-mono uppercase tracking-widest text-[#00DF89] font-bold">
+                  ARCHITECTURE & WORKFLOW
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mt-1">
+                  How FieldGuard AI Works
+                </h2>
+                <p className="text-xs text-slate-400 mt-1">
+                  An end-to-end overview of our hybrid on-device and cloud safety intelligence pipeline.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowHowItWorks(false)}
+                className="w-8 h-8 rounded-xl bg-[#081211] border border-[#162E2A] text-slate-400 hover:text-white flex items-center justify-center text-sm transition hover:border-red-500/40 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* 4 Steps Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+              {/* Step 1 */}
+              <div className="bg-[#081211] border border-[#162E2A] rounded-2xl p-5 space-y-2.5 relative overflow-hidden group hover:border-[#00DF89]/40 transition">
+                <div className="flex items-center justify-between">
+                  <span className="w-7 h-7 rounded-lg bg-[#0F2923] border border-[#00DF89]/30 text-[#00DF89] font-mono font-bold text-xs flex items-center justify-center">
+                    01
+                  </span>
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500">
+                    EDGE CAPTURE
+                  </span>
+                </div>
+                <h3 className="text-sm font-bold text-white group-hover:text-[#00DF89] transition">
+                  Capture on the Field
+                </h3>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Field workers log unsafe conditions, observations, and site locations directly from web or mobile browsers, designed to work smoothly even without internet.
+                </p>
+                <div className="pt-1 text-[10px] font-mono text-[#00DF89] flex items-center gap-1.5">
+                  <span>⚡ Offline-First</span>
+                  <span>•</span>
+                  <span>Zero Data Loss</span>
+                </div>
+              </div>
+
+              {/* Step 2 */}
+              <div className="bg-[#081211] border border-[#162E2A] rounded-2xl p-5 space-y-2.5 relative overflow-hidden group hover:border-[#00DF89]/40 transition">
+                <div className="flex items-center justify-between">
+                  <span className="w-7 h-7 rounded-lg bg-[#0F2923] border border-[#00DF89]/30 text-[#00DF89] font-mono font-bold text-xs flex items-center justify-center">
+                    02
+                  </span>
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500">
+                    HYBRID INFERENCE
+                  </span>
+                </div>
+                <h3 className="text-sm font-bold text-white group-hover:text-[#00DF89] transition">
+                  Hybrid Edge / Cloud AI Routing
+                </h3>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Fast reports run locally in Chrome via <strong className="text-white">Gemini Nano (WebGPU)</strong> with zero server latency. Complex reports (&gt;600 chars) automatically escalate to <strong className="text-white">Gemini 3.5 Flash Lite</strong> on Google Cloud.
+                </p>
+                <div className="pt-1 text-[10px] font-mono text-[#00DF89] flex items-center gap-1.5">
+                  <span>⚡ Gemini Nano</span>
+                  <span>+</span>
+                  <span>☁️ Cloud Fallback</span>
+                </div>
+              </div>
+
+              {/* Step 3 */}
+              <div className="bg-[#081211] border border-[#162E2A] rounded-2xl p-5 space-y-2.5 relative overflow-hidden group hover:border-[#00DF89]/40 transition">
+                <div className="flex items-center justify-between">
+                  <span className="w-7 h-7 rounded-lg bg-[#0F2923] border border-[#00DF89]/30 text-[#00DF89] font-mono font-bold text-xs flex items-center justify-center">
+                    03
+                  </span>
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500">
+                    HUMAN-IN-THE-LOOP
+                  </span>
+                </div>
+                <h3 className="text-sm font-bold text-white group-hover:text-[#00DF89] transition">
+                  Human-in-the-Loop Verification
+                </h3>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  The AI calculates an ISO risk score (Likelihood × Severity, 1–25) and suggests action. A certified safety inspector reviews and confirms all ratings on an interactive 5×5 matrix.
+                </p>
+                <div className="pt-1 text-[10px] font-mono text-amber-400 flex items-center gap-1.5">
+                  <span>🛡️ AI Suggests, Human Signs Off</span>
+                </div>
+              </div>
+
+              {/* Step 4 */}
+              <div className="bg-[#081211] border border-[#162E2A] rounded-2xl p-5 space-y-2.5 relative overflow-hidden group hover:border-[#00DF89]/40 transition">
+                <div className="flex items-center justify-between">
+                  <span className="w-7 h-7 rounded-lg bg-[#0F2923] border border-[#00DF89]/30 text-[#00DF89] font-mono font-bold text-xs flex items-center justify-center">
+                    04
+                  </span>
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500">
+                    ACTIONS & REMEDIATION
+                  </span>
+                </div>
+                <h3 className="text-sm font-bold text-white group-hover:text-[#00DF89] transition">
+                  Real-Time Remediation &amp; Tracking
+                </h3>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Approved hazards sync automatically to the Firestore Corrective Actions Board, assigning actionable tasks with deadlines to on-site technicians for monitored resolution.
+                </p>
+                <div className="pt-1 text-[10px] font-mono text-[#00DF89] flex items-center gap-1.5">
+                  <span>📋 Live Kanban</span>
+                  <span>•</span>
+                  <span>Firestore Sync</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Bottom Action Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-[#162E2A]">
+              <div className="text-[11px] font-mono text-slate-400">
+                Ready to preview the live workflow?
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowHowItWorks(false)}
+                  className="px-4 py-2 rounded-xl bg-[#081211] border border-[#162E2A] text-slate-300 hover:text-white text-xs font-medium cursor-pointer transition"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowHowItWorks(false);
+                    onLaunchDashboard();
+                  }}
+                  className="px-5 py-2 rounded-xl bg-[#00DF89] hover:bg-[#00C476] text-[#071311] font-bold text-xs cursor-pointer shadow-md transition"
+                >
+                  Launch Dashboard &rarr;
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
