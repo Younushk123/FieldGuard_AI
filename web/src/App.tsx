@@ -6,8 +6,10 @@ import { HistoryView } from './features/history/index.tsx';
 import { ActionsView } from './features/actions/index.tsx';
 import { AnalysisView } from './features/analysis/index.tsx';
 import { ReviewView } from './features/review/index.tsx';
-import { AuditReportPrintDoc } from './features/review/AuditReportDoc.tsx';
+import { AuditReportPrintDoc, type AuditReportData } from './features/review/AuditReportDoc.tsx';
 import { AuthView } from './features/auth/index.tsx';
+import { subscribeInspections } from './features/data/api.ts';
+import type { InspectionDoc } from './features/data/types.ts';
 import { useAuth } from './features/auth/useAuth';
 
 type Tab = 'dashboard' | 'capture' | 'history' | 'review' | 'actions' | 'analysis' | 'settings';
@@ -62,8 +64,26 @@ export const App: React.FC = () => {
   const [routeInfo, setRouteInfo] = useState(() => getRouteFromPath(window.location.pathname));
   const [workspace, setWorkspace] = useState('Plant 2');
   const [showAuditDoc, setShowAuditDoc] = useState(false);
+  const [latestInspection, setLatestInspection] = useState<InspectionDoc | null>(null);
   const { user, loading } = useAuth();
   const online = useOnline();
+
+  useEffect(() => {
+    if (!user) {
+      setLatestInspection(null);
+      return;
+    }
+    const unsub = subscribeInspections(
+      user.uid,
+      (list) => {
+        if (list.length > 0) {
+          setLatestInspection(list[0]); // newest user inspection
+        }
+      },
+      () => {}
+    );
+    return () => unsub();
+  }, [user]);
 
   useEffect(() => {
     const onPop = () => {
@@ -448,6 +468,53 @@ export const App: React.FC = () => {
       {/* Formal Audit Inspection PDF Certificate Modal */}
       {showAuditDoc && (
         <AuditReportPrintDoc
+          data={
+            latestInspection
+              ? {
+                  reportId: `INS-${latestInspection.id.slice(0, 4).toUpperCase()}`,
+                  facility: workspace,
+                  location: 'Logged Inspection Area',
+                  timestamp: latestInspection.createdAt?.toDate
+                    ? latestInspection.createdAt.toDate().toLocaleString('en-US', {
+                        weekday: 'short',
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })
+                    : new Date().toLocaleString(),
+                  inspectorName: user?.email ? user.email.split('@')[0] : 'Certified Field Inspector',
+                  inspectorId: user?.uid ? `CERT-${user.uid.slice(0, 6).toUpperCase()}` : 'CERT-HSE-9042',
+                  observation: latestInspection.reportText || latestInspection.summary,
+                  category: latestInspection.hazardCategory ? `${latestInspection.hazardCategory.toUpperCase()} HAZARD` : 'GENERAL SAFETY',
+                  inferenceMode:
+                    latestInspection.inferenceSource === 'on-device'
+                      ? '⚡ On-Device Edge (Chrome Gemini Nano)'
+                      : '☁️ Cloud Escalate (Gemini 3.5 Flash Lite)',
+                  inferenceLatency: latestInspection.inferenceMs ? `${Math.round(latestInspection.inferenceMs)} ms` : '124 ms',
+                  likelihood: latestInspection.likelihood || 4,
+                  severity: latestInspection.severity || 5,
+                  riskScore: latestInspection.riskScore || 20,
+                  riskLevel: (latestInspection.riskLevel || 'critical').toUpperCase(),
+                  actions: [
+                    {
+                      title: latestInspection.suggestedAction || 'Deploy immediate perimeter barrier and signage',
+                      description: 'Take corrective mitigative action as suggested by AI safety intelligence.',
+                      priority: latestInspection.riskLevel === 'critical' ? 'IMMEDIATE' : 'SHORT_TERM',
+                      assignee: 'Site Operational Maintenance',
+                      deadline: latestInspection.riskLevel === 'critical' ? 'Within 24 Hours' : '3 Days',
+                    },
+                  ],
+                  signOffBy: `Lead Inspector ${user?.email || 'Alex Morgan'}`,
+                  signOffDate: new Date().toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  }),
+                }
+              : undefined
+          }
           onClose={() => setShowAuditDoc(false)}
           onPrint={() => window.print()}
         />
