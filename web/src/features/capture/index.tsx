@@ -31,8 +31,8 @@ export const CaptureView: React.FC<{ initialSite?: string }> = ({ initialSite })
     initialSite === 'Offshore Delta' ? 'Offshore Platform Delta' :
     'Plant 2, Industrial Zone'
   );
-  const [location, setLocation] = useState('Level 3, north platform');
-  const [selectedCategory, setSelectedCategory] = useState<string>('Fall');
+  const [location, setLocation] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [forceCloud, setForceCloud] = useState(false);
 
   useEffect(() => {
@@ -65,13 +65,26 @@ export const CaptureView: React.FC<{ initialSite?: string }> = ({ initialSite })
   }
 
   async function handleAnalyze() {
-    if (!report.trim()) return;
+    const rawReport = report.trim();
+    if (!rawReport) return;
     setBusy(true);
     setError('');
     setResult(null);
     setSaveState('idle');
     try {
-      const fullPrompt = `Location: ${site} - ${location}. Category hint: ${selectedCategory}.\n\nObservation: ${report}`;
+      const parts: string[] = [];
+      const trimmedLocation = location.trim();
+      if (trimmedLocation) {
+        parts.push(`Location: ${site ? `${site} - ` : ''}${trimmedLocation}`);
+      }
+      if (selectedCategory) {
+        parts.push(`Category hint: ${selectedCategory}`);
+      }
+
+      const fullPrompt = parts.length > 0
+        ? `${parts.join('. ')}.\n\nObservation: ${rawReport}`
+        : rawReport;
+
       const res = await classify(fullPrompt, forceCloud);
       setResult(res);
     } catch (e) {
@@ -200,7 +213,7 @@ export const CaptureView: React.FC<{ initialSite?: string }> = ({ initialSite })
                   <button
                     key={cat}
                     type="button"
-                    onClick={() => setSelectedCategory(cat)}
+                    onClick={() => setSelectedCategory(selectedCategory === cat ? '' : cat)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
                       active
                         ? 'bg-[#00DF89] text-[#071311] font-bold shadow-sm'
