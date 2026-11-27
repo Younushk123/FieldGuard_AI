@@ -38,7 +38,7 @@ export const App: React.FC = () => {
       case 'history': return 'Safety overview';
       case 'review': return 'Safety overview';
       case 'actions': return 'Safety overview';
-      case 'analysis': return 'Safety overview';
+      case 'analysis': return 'AI Analysis';
       case 'settings': return 'Inspector Profile & Security';
       default: return 'Safety overview';
     }
@@ -124,7 +124,7 @@ export const App: React.FC = () => {
               </div>
             </button>
 
-            {/* AI Intelligence (Page 06) */}
+            {/* AI Analysis (Page 06) */}
             <button
               type="button"
               onClick={() => setActiveTab('analysis')}
@@ -138,7 +138,7 @@ export const App: React.FC = () => {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
-                <span>AI Intelligence</span>
+                <span>AI Analysis</span>
               </div>
               <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full ${
                 activeTab === 'analysis' ? 'bg-[#071311]/20 text-[#071311]' : 'bg-[#00DF89]/10 text-[#00DF89] border border-[#00DF89]/30'
