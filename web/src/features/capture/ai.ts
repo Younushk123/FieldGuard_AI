@@ -12,7 +12,7 @@ import type { InferenceSource, RiskLevel } from '../../types';
 
 const CLOUD_MODEL = 'gemini-3.5-flash-lite';
 // Reports longer than this go straight to the cloud (on-device is slow and unreliable on long text).
-const LONG_REPORT_CHARS = 1500;
+const LONG_REPORT_CHARS = 600;
 
 const ai = getAI(getApp(), { backend: new GoogleAIBackend() });
 
