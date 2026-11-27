@@ -4,7 +4,7 @@ import { db } from '../../lib/firebase';
 import type { CaptureResult } from './ai';
 
 // Turn on only after Maaz has added inferenceMs to the schema and deployed the rules.
-const SAVE_INFERENCE_MS = false;
+const SAVE_INFERENCE_MS = true;
 
 export async function saveInspection(reportText: string, r: CaptureResult) {
   const uid = getAuth().currentUser?.uid;
@@ -26,6 +26,6 @@ export async function saveInspection(reportText: string, r: CaptureResult) {
     inferenceSource: r.inferenceSource,
     status: 'pending_review',
   };
-  if (SAVE_INFERENCE_MS) data.inferenceMs = Math.round(r.inferenceMs);
+  if (SAVE_INFERENCE_MS) data.inferenceMs = Math.min(Math.round(r.inferenceMs), 120000);
 
   return addDoc(collection(db, 'inspections'), data);}
