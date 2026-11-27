@@ -82,6 +82,11 @@ export const App: React.FC = () => {
     navigate(tabToPath(tab));
   };
 
+  const handleExportPDF = () => {
+    // Professional safety audit PDF export using native browser print pipeline
+    window.print();
+  };
+
   // Loading state
   if (loading) {
     return (
@@ -384,9 +389,11 @@ export const App: React.FC = () => {
             {/* Export PDF Button */}
             <button
               type="button"
-              className="px-3 py-1.5 rounded-lg bg-[#0C1A18] border border-[#162E2A] text-xs font-medium text-slate-300 hover:text-white transition flex items-center gap-1.5"
+              onClick={handleExportPDF}
+              title="Export official safety audit report as PDF"
+              className="px-3 py-1.5 rounded-lg bg-[#0C1A18] border border-[#162E2A] text-xs font-medium text-slate-300 hover:text-white hover:border-[#00DF89]/40 transition flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+              <svg className="w-3.5 h-3.5 text-[#00DF89]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               <span>Export PDF</span>
