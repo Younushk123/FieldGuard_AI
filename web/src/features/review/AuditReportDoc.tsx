@@ -81,10 +81,34 @@ export const SAMPLE_AUDIT_REPORT: AuditReportData = {
 };
 
 export const AuditReportPrintDoc: React.FC<{
-  data?: AuditReportData;
+  data?: AuditReportData | null;
   onClose: () => void;
   onPrint: () => void;
-}> = ({ data = SAMPLE_AUDIT_REPORT, onClose, onPrint }) => {
+}> = ({ data, onClose, onPrint }) => {
+  if (!data) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+        <div className="bg-[#0C1A18] border border-[#162E2A] rounded-2xl max-w-md w-full p-6 text-center space-y-4 shadow-2xl">
+          <div className="w-12 h-12 rounded-full bg-[#081211] border border-amber-500/40 text-amber-400 mx-auto flex items-center justify-center text-xl">
+            ⚠️
+          </div>
+          <h3 className="text-base font-bold text-white">No Live Inspections Found</h3>
+          <p className="text-xs text-slate-400 leading-relaxed">
+            Please log at least one hazard inspection from the <strong className="text-white">+ New Inspection</strong> tab. The PDF report exports 100% live verified data submitted by you.
+          </p>
+          <div className="pt-2 flex justify-center">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-5 py-2.5 rounded-xl bg-[#00DF89] hover:bg-[#00C476] text-[#071311] font-bold text-xs cursor-pointer transition shadow-md"
+            >
+              Close &amp; Log an Inspection
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md overflow-y-auto">
       <div className="bg-[#0C1A18] border border-[#162E2A] rounded-2xl max-w-4xl w-full p-4 sm:p-8 text-slate-200 shadow-2xl relative my-auto">

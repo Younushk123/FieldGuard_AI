@@ -544,7 +544,7 @@ useEffect(() => {
                     day: 'numeric',
                   }),
                 }
-              : undefined
+              : null
           }
           onClose={() => setShowAuditDoc(false)}
           onPrint={() => window.print()}
