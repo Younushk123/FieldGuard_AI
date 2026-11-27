@@ -99,7 +99,7 @@ export const CaptureView: React.FC<{ initialSite?: string }> = ({ initialSite })
     setSaveState('saving');
     setError('');
     try {
-      await saveInspection(report.trim(), result);
+      await saveInspection(report.trim(), result, site, location);
       setSaveState('saved');
     } catch (e) {
       setSaveState('idle');
@@ -195,6 +195,7 @@ export const CaptureView: React.FC<{ initialSite?: string }> = ({ initialSite })
               type="text"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
+              maxLength={200}
               placeholder="e.g. Level 3, north platform"
               className="w-full bg-[#081211] border border-[#162E2A] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-[#00DF89] transition"
             />

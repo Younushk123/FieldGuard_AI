@@ -8,6 +8,8 @@ import { AnalysisView } from './features/analysis/index.tsx';
 import { ReviewView } from './features/review/index.tsx';
 import { AuthView } from './features/auth/index.tsx';
 import { useAuth } from './features/auth/useAuth';
+import { subscribeActions } from './features/data/api.ts';
+import { isWorkspace, type Workspace } from './features/data/sites.ts';
 
 type Tab = 'dashboard' | 'capture' | 'history' | 'review' | 'actions' | 'analysis' | 'settings';
 
@@ -59,9 +61,25 @@ function useOnline() {
 
 export const App: React.FC = () => {
   const [routeInfo, setRouteInfo] = useState(() => getRouteFromPath(window.location.pathname));
-  const [workspace, setWorkspace] = useState('Plant 2');
+  const [workspace, setWorkspace] = useState<Workspace>('Plant 2');
+  const [openActionCount, setOpenActionCount] = useState<number | null>(null);
+  const [actionCountError, setActionCountError] = useState<string | null>(null);
   const { user, loading } = useAuth();
   const online = useOnline();
+
+  useEffect(() => {
+    setOpenActionCount(null);
+    setActionCountError(null);
+    if (!user) return;
+
+    return subscribeActions(user.uid, (actions) => {
+      setOpenActionCount(actions.filter((action) =>
+        action.status === 'open' || action.status === 'in_progress'
+      ).length);
+    }, (error) => {
+      setActionCountError(error.message);
+    });
+  }, [user]);
 
   useEffect(() => {
     const onPop = () => {
@@ -72,14 +90,19 @@ export const App: React.FC = () => {
   }, []);
 
   const navigate = (path: string) => {
-    if (window.location.pathname !== path) {
-      window.history.pushState({}, '', path);
+    const target = new URL(path, window.location.origin);
+    const targetPath = `${target.pathname}${target.search}${target.hash}`;
+    if (`${window.location.pathname}${window.location.search}${window.location.hash}` !== targetPath) {
+      window.history.pushState({}, '', targetPath);
     }
-    setRouteInfo(getRouteFromPath(path));
+    setRouteInfo(getRouteFromPath(target.pathname));
   };
 
-  const handleTabChange = (tab: Tab) => {
-    navigate(tabToPath(tab));
+  const handleTabChange = (tab: Tab, inspectionId?: string) => {
+    const path = tab === 'review' && inspectionId
+      ? `${tabToPath(tab)}?inspectionId=${encodeURIComponent(inspectionId)}`
+      : tabToPath(tab);
+    navigate(path);
   };
 
   // Loading state
@@ -168,7 +191,9 @@ export const App: React.FC = () => {
             <div className="relative">
               <select
                 value={workspace}
-                onChange={(e) => setWorkspace(e.target.value)}
+                onChange={(e) => {
+                  if (isWorkspace(e.target.value)) setWorkspace(e.target.value);
+                }}
                 className="w-full bg-[#0C1A18] border border-[#162E2A] rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-200 appearance-none focus:outline-none focus:border-[#00DF89] cursor-pointer hover:border-[#00DF89]/40 transition pr-9"
               >
                 <option value="Plant 2" className="bg-[#0C1A18] text-white">Plant 2 (Industrial Zone)</option>
@@ -262,11 +287,6 @@ export const App: React.FC = () => {
                 </svg>
                 <span>Review &amp; Approve</span>
               </div>
-              <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full ${
-                activeTab === 'review' ? 'bg-[#071311]/20 text-[#071311]' : 'bg-red-500/20 text-red-400 border border-red-500/30'
-              }`}>
-                Critical
-              </span>
             </button>
 
             {/* Action Board (Page 09) */}
@@ -285,10 +305,14 @@ export const App: React.FC = () => {
                 </svg>
                 <span>Action Board</span>
               </div>
-              <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full ${
-                activeTab === 'actions' ? 'bg-[#071311]/20 text-[#071311]' : 'bg-[#162E2A] text-slate-400'
-              }`}>
-                5 open
+              <span
+                title={actionCountError || 'Includes open and in-progress actions'}
+                aria-label={actionCountError ? `Action count unavailable: ${actionCountError}` : undefined}
+                className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full ${
+                  activeTab === 'actions' ? 'bg-[#071311]/20 text-[#071311]' : 'bg-[#162E2A] text-slate-400'
+                }`}
+              >
+                {actionCountError ? 'Unavailable' : openActionCount === null ? '…' : `${openActionCount} open`}
               </span>
             </button>
 
@@ -368,7 +392,7 @@ export const App: React.FC = () => {
             {/* Online Indicator */}
             <div className="flex items-center gap-2 text-xs text-slate-400">
               <span className={`w-2 h-2 rounded-full ${online ? 'bg-[#00DF89]' : 'bg-amber-500'}`}></span>
-              <span className="text-[11px] font-medium">{online ? 'Online · demo data' : 'Offline'}</span>
+              <span className="text-[11px] font-medium">{online ? 'Network online' : 'Offline'}</span>
             </div>
 
             {/* Bell Icon */}
@@ -426,12 +450,14 @@ export const App: React.FC = () => {
 
         {/* Scrollable Viewport */}
         <main className="flex-1 overflow-y-auto p-8">
-          {activeTab === 'dashboard' && <DashboardView onNavigate={(t) => handleTabChange(t as Tab)} workspace={workspace} />}
+          {activeTab === 'dashboard' && <DashboardView workspace={workspace} onNavigate={handleTabChange} />}
           {activeTab === 'capture' && <CaptureView initialSite={workspace} />}
-          {activeTab === 'history' && <HistoryView onNavigate={(t) => handleTabChange(t as Tab)} />}
+          {activeTab === 'history' && <HistoryView workspace={workspace} onNavigate={(t, id) => handleTabChange(t as Tab, id)} />}
           {activeTab === 'actions' && <ActionsView />}
           {activeTab === 'analysis' && <AnalysisView />}
-          {activeTab === 'review' && <ReviewView />}
+          {activeTab === 'review' && (
+            <ReviewView inspectionId={new URLSearchParams(window.location.search).get('inspectionId')} />
+          )}
           {activeTab === 'settings' && <AuthView />}
         </main>
       </div>

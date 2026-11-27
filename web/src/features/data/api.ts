@@ -1,6 +1,6 @@
 import {
   collection, query, where, onSnapshot, addDoc, updateDoc, doc,
-  serverTimestamp, Timestamp, type Unsubscribe,
+  runTransaction, serverTimestamp, Timestamp, type Unsubscribe,
 } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import type { ActionDoc, ActionPriority, ActionStatus, InspectionDoc } from './types.ts';
@@ -42,17 +42,35 @@ export function subscribeInspections(
   );
 }
 
-export function createAction(
+export function subscribeInspection(
   uid: string,
-  input: {
+  inspectionId: string,
+  onData: (inspection: InspectionDoc | null) => void,
+  onError: (e: Error) => void
+): Unsubscribe {
+  return onSnapshot(
+    doc(db, 'inspections', inspectionId),
+    (snap) => {
+      if (!snap.exists() || snap.data().ownerId !== uid) {
+        onData(null);
+        return;
+      }
+      onData({ id: snap.id, ...snap.data({ serverTimestamps: 'estimate' }) } as InspectionDoc);
+    },
+    onError
+  );
+}
+
+type NewAction = {
     inspectionId: string;
     title: string;
     description?: string;
     priority?: ActionPriority;
     assignee?: string;
     deadline?: Date;
-  }
-) {
+};
+
+function actionData(uid: string, input: NewAction) {
   const data: Record<string, unknown> = {
     inspectionId: input.inspectionId,
     ownerId: uid,
@@ -65,7 +83,31 @@ export function createAction(
   if (input.priority) data.priority = input.priority;
   if (input.assignee) data.assignee = input.assignee;
   if (input.deadline) data.deadline = Timestamp.fromDate(input.deadline);
-  return addDoc(collection(db, 'actions'), data);
+  return data;
+}
+
+export function createAction(uid: string, input: NewAction) {
+  return addDoc(collection(db, 'actions'), actionData(uid, input));
+}
+
+export function createActionOnce(uid: string, input: NewAction, actionKey: string) {
+  const id = encodeURIComponent(`${uid}:${input.inspectionId}:${actionKey}`);
+  const actionRef = doc(db, 'actions', id);
+  const data = actionData(uid, input);
+
+  return runTransaction(db, async (transaction) => {
+    const existing = await transaction.get(actionRef);
+    if (!existing.exists()) transaction.set(actionRef, data);
+  });
+}
+
+export function approveInspection(inspectionId: string, uid: string) {
+  return updateDoc(doc(db, 'inspections', inspectionId), {
+    status: 'approved',
+    reviewedBy: uid,
+    reviewedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
 }
 
 export function updateAction(
