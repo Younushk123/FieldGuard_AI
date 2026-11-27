@@ -7,6 +7,7 @@ export const LandingPageView: React.FC<{
   onExploreAI?: () => void;
 }> = ({ onLaunchDashboard, onSignIn, onExploreAI }) => {
   const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const [showPlatformOverview, setShowPlatformOverview] = useState(false);
   return (
     <div className="min-h-screen w-full bg-[#070E0D] text-slate-200 flex flex-col justify-between overflow-x-hidden select-none relative">
       {/* Background Subtle Isometric Grid Pattern */}
@@ -36,8 +37,14 @@ export const LandingPageView: React.FC<{
 
         {/* Center Navigation Links */}
         <nav className="hidden md:flex items-center gap-8 text-xs font-medium text-slate-400">
-          <button onClick={onLaunchDashboard} className="hover:text-white transition cursor-pointer">Platform</button>
-          <button onClick={onExploreAI || onLaunchDashboard} className="hover:text-white transition cursor-pointer">AI intelligence</button>
+          <button
+            type="button"
+            onClick={() => setShowPlatformOverview(true)}
+            className="hover:text-[#00DF89] text-slate-300 font-semibold transition cursor-pointer flex items-center gap-1.5"
+          >
+            <span>Platform</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-[#00DF89]/60"></span>
+          </button>
           <button
             type="button"
             onClick={() => setShowHowItWorks(true)}
@@ -396,6 +403,127 @@ export const LandingPageView: React.FC<{
                   className="px-5 py-2 rounded-xl bg-[#00DF89] hover:bg-[#00C476] text-[#071311] font-bold text-xs cursor-pointer shadow-md transition"
                 >
                   Launch Dashboard &rarr;
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= INTERACTIVE PLATFORM OVERVIEW MODAL ================= */}
+      {showPlatformOverview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md animate-fadeIn">
+          <div className="bg-[#0C1A18] border border-[#162E2A] rounded-3xl max-w-4xl w-full p-6 sm:p-8 relative shadow-2xl overflow-y-auto max-h-[90vh] space-y-6">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between border-b border-[#162E2A] pb-5">
+              <div>
+                <div className="text-[10px] font-mono uppercase tracking-widest text-[#00DF89] font-bold">
+                  ENTERPRISE SAFETY ECOSYSTEM
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mt-1">
+                  FieldGuard AI Platform Overview
+                </h2>
+                <p className="text-xs text-slate-400 mt-1">
+                  An end-to-end intelligent safety operating system engineered for heavy industry, energy platforms, and manufacturing plants.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPlatformOverview(false)}
+                className="w-8 h-8 rounded-xl bg-[#081211] border border-[#162E2A] text-slate-400 hover:text-white flex items-center justify-center text-sm transition hover:border-red-500/40 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Platform Highlights 3 Columns */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-[#081211] border border-[#162E2A] rounded-2xl p-5 space-y-2">
+                <div className="w-8 h-8 rounded-lg bg-[#0F2923] border border-[#00DF89]/30 text-[#00DF89] flex items-center justify-center text-base">
+                  ⚡
+                </div>
+                <h3 className="text-sm font-bold text-white">Hybrid AI Engine</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Dual inference combining on-device privacy via Chrome Gemini Nano with scalable cloud intelligence via Gemini 3.5 Flash Lite.
+                </p>
+              </div>
+
+              <div className="bg-[#081211] border border-[#162E2A] rounded-2xl p-5 space-y-2">
+                <div className="w-8 h-8 rounded-lg bg-[#0F2923] border border-[#00DF89]/30 text-[#00DF89] flex items-center justify-center text-base">
+                  🌐
+                </div>
+                <h3 className="text-sm font-bold text-white">3D Digital Twin</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Interactive spatial facility visualization pinpointing critical and high-risk hazard telemetry across physical work zones.
+                </p>
+              </div>
+
+              <div className="bg-[#081211] border border-[#162E2A] rounded-2xl p-5 space-y-2">
+                <div className="w-8 h-8 rounded-lg bg-[#0F2923] border border-[#00DF89]/30 text-[#00DF89] flex items-center justify-center text-base">
+                  🛡️
+                </div>
+                <h3 className="text-sm font-bold text-white">Closed-Loop Compliance</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  From initial frontline hazard capture to 5×5 matrix sign-off, action delegation, and OSHA audit verification.
+                </p>
+              </div>
+            </div>
+
+            {/* Platform Core Modules List */}
+            <div className="bg-[#081211] border border-[#162E2A] rounded-2xl p-5 space-y-3">
+              <div className="text-[10px] font-mono uppercase text-[#00DF89] font-bold tracking-wider">
+                Integrated Suite Modules
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-300">
+                <div className="flex items-start gap-2.5">
+                  <span className="text-[#00DF89] font-bold">✔</span>
+                  <div>
+                    <strong className="text-white">Safety Intelligence Dashboard:</strong> Live site KPIs, risk level charts, and dynamic facility overview.
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="text-[#00DF89] font-bold">✔</span>
+                  <div>
+                    <strong className="text-white">Smart Hazard Capture:</strong> Multi-site logging with offline local model downloads and instant assessment.
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="text-[#00DF89] font-bold">✔</span>
+                  <div>
+                    <strong className="text-white">Inspector Review &amp; Heatmap:</strong> Human-in-the-loop interactive 5×5 matrix rating adjustment.
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="text-[#00DF89] font-bold">✔</span>
+                  <div>
+                    <strong className="text-white">Corrective Actions Board:</strong> Real-time task board with assignee delegation and overdue alerts.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-[#162E2A]">
+              <div className="text-[11px] font-mono text-slate-400">
+                #BuildHybridAI 2026 Hackathon Edition
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowPlatformOverview(false)}
+                  className="px-4 py-2 rounded-xl bg-[#081211] border border-[#162E2A] text-slate-300 hover:text-white text-xs font-medium cursor-pointer transition"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPlatformOverview(false);
+                    onLaunchDashboard();
+                  }}
+                  className="px-5 py-2 rounded-xl bg-[#00DF89] hover:bg-[#00C476] text-[#071311] font-bold text-xs cursor-pointer shadow-md transition"
+                >
+                  Enter Platform &rarr;
                 </button>
               </div>
             </div>
