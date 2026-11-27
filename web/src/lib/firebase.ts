@@ -7,7 +7,7 @@ import {
   persistentMultipleTabManager,
 } from 'firebase/firestore';
 import { getRemoteConfig } from 'firebase/remote-config';
-import { initializeAppCheck, CustomProvider } from 'firebase/app-check';
+import { initializeAppCheck, CustomProvider, ReCaptchaV3Provider } from 'firebase/app-check';
 import { getAI, GoogleAIBackend } from 'firebase/ai';
 
 const firebaseConfig = {
@@ -37,18 +37,28 @@ if (typeof window !== 'undefined' && import.meta.env.VITE_APPCHECK_DEBUG_TOKEN) 
 export const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
 // Initialize App Check immediately after app initialization (before auth, db, and ai)
-if (typeof window !== 'undefined' && import.meta.env.VITE_APPCHECK_DEBUG_TOKEN) {
+// DEV mode: use debug token from .env.local  |  PROD mode: use reCAPTCHA v3
+if (typeof window !== 'undefined') {
   try {
-    initializeAppCheck(app, {
-      provider: new CustomProvider({
-        getToken: () =>
-          Promise.resolve({
-            token: 'debug-token-active',
-            expireTimeMillis: Date.now() + 60 * 60 * 1000,
-          }),
-      }),
-      isTokenAutoRefreshEnabled: true,
-    });
+    if (import.meta.env.VITE_APPCHECK_DEBUG_TOKEN) {
+      // Development: Firebase SDK debug-token flow
+      initializeAppCheck(app, {
+        provider: new CustomProvider({
+          getToken: () =>
+            Promise.resolve({
+              token: 'debug-token-active',
+              expireTimeMillis: Date.now() + 60 * 60 * 1000,
+            }),
+        }),
+        isTokenAutoRefreshEnabled: true,
+      });
+    } else if (import.meta.env.VITE_RECAPTCHA_V3_SITE_KEY) {
+      // Production: reCAPTCHA v3 provider for live site
+      initializeAppCheck(app, {
+        provider: new ReCaptchaV3Provider(import.meta.env.VITE_RECAPTCHA_V3_SITE_KEY),
+        isTokenAutoRefreshEnabled: true,
+      });
+    }
   } catch (err) {
     console.warn('App Check init skipped in current context:', err);
   }
