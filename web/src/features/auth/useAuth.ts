@@ -7,8 +7,9 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   signOut,
+  deleteUser,
 } from 'firebase/auth';
-import { doc, getDoc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
+import { deleteDoc, doc, getDoc, onSnapshot, setDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../../lib/firebase';
 
 export type TeamRole = 'manager' | 'member';
@@ -140,7 +141,13 @@ export function useAuth() {
   const joinTeam = async (email: string, pass: string, inviteCode: string) => {
     setError(null);
     setLoading(true);
+    let createdUser: User | null = null;
+    let profileCreated = false;
     try {
+      const cred = await createUserWithEmailAndPassword(auth, email, pass);
+      createdUser = cred.user;
+      const userProfileRef = doc(db, 'users', cred.user.uid);
+
       const code = inviteCode.trim().toUpperCase();
       const inviteSnap = await getDoc(doc(db, 'teamInvites', code));
       if (!inviteSnap.exists()) throw new Error('This team invite code is invalid.');
@@ -148,25 +155,41 @@ export function useAuth() {
       if (!invite.active || typeof invite.teamId !== 'string') {
         throw new Error('This team invite is no longer active.');
       }
-      const teamSnap = await getDoc(doc(db, 'teams', invite.teamId));
-      if (!teamSnap.exists()) throw new Error('The team for this invite could not be found.');
-      const team = teamSnap.data();
 
-      const cred = await createUserWithEmailAndPassword(auth, email, pass);
-      await setDoc(doc(db, 'users', cred.user.uid), {
+      await setDoc(userProfileRef, {
         uid: cred.user.uid,
         email: cred.user.email || email,
         role: 'member',
         teamId: invite.teamId,
-        teamName: typeof team.name === 'string' ? team.name : null,
+        teamName: null,
         status: 'active',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
+      profileCreated = true;
+
+      const teamSnap = await getDoc(doc(db, 'teams', invite.teamId));
+      if (!teamSnap.exists()) throw new Error('The team for this invite could not be found.');
+      const teamName = teamSnap.data().name;
+      await updateDoc(userProfileRef, {
+        teamName: typeof teamName === 'string' ? teamName : null,
+        updatedAt: serverTimestamp(),
+      });
+
       setUser(cred.user);
       return cred.user;
     } catch (err: unknown) {
       const msg = getFriendlyErrorMessage(err);
+      if (createdUser) {
+        try {
+          if (profileCreated) await deleteDoc(doc(db, 'users', createdUser.uid));
+          await deleteUser(createdUser);
+        } catch (cleanupErr: unknown) {
+          const cleanupMessage = `${msg} Account cleanup failed: ${getFriendlyErrorMessage(cleanupErr)}`;
+          setError(cleanupMessage);
+          throw new Error(cleanupMessage);
+        }
+      }
       setError(msg);
       throw new Error(msg);
     } finally {
@@ -232,6 +255,7 @@ export function useAuth() {
 }
 
 function getFriendlyErrorMessage(err: unknown): string {
+  if (err instanceof Error && !('code' in err)) return err.message;
   if (typeof err === 'object' && err !== null && 'code' in err) {
     const code = (err as { code: string }).code;
     switch (code) {
