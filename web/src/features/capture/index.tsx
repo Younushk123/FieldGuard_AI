@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { classify, enableOfflineAI, type CaptureResult } from './ai';
 import { saveInspection } from './save';
+import { useAuth } from '../auth/useAuth';
 
 type OfflineState = 'off' | 'loading' | 'ready' | 'error';
 
@@ -23,13 +24,21 @@ const LEVEL_STYLE: Record<string, { pill: string; badge: string }> = {
 };
 
 // Owner: Younus / Humna - 100% Exact match of Page 06 (New inspection workflow)
-export const CaptureView: React.FC<{ initialSite?: string }> = ({ initialSite }) => {
+export const CaptureView: React.FC<{
+  initialSite?: string;
+  customSites?: string[];
+  onAddSite?: (name: string) => void | Promise<void>;
+}> = ({ initialSite, customSites = [], onAddSite }) => {
+  const { profile } = useAuth();
+  const teamId = profile?.teamId || null;
   const [report, setReport] = useState('');
   const [site, setSite] = useState(
     initialSite === 'Plant 1' ? 'Plant 1, Assembly Line' :
     initialSite === 'Plant 3' ? 'Plant 3, Chemical Storage' :
     initialSite === 'Offshore Delta' ? 'Offshore Platform Delta' :
-    'Plant 2, Industrial Zone'
+    initialSite && initialSite !== 'All' && initialSite !== 'Plant 2'
+      ? initialSite
+      : 'Plant 2, Industrial Zone'
   );
   const [location, setLocation] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
@@ -40,7 +49,8 @@ export const CaptureView: React.FC<{ initialSite?: string }> = ({ initialSite })
       if (initialSite === 'Plant 1') setSite('Plant 1, Assembly Line');
       else if (initialSite === 'Plant 3') setSite('Plant 3, Chemical Storage');
       else if (initialSite === 'Offshore Delta') setSite('Offshore Platform Delta');
-      else setSite('Plant 2, Industrial Zone');
+      else if (initialSite === 'Plant 2') setSite('Plant 2, Industrial Zone');
+      else if (initialSite !== 'All') setSite(initialSite);
     }
   }, [initialSite]);
 
@@ -50,6 +60,30 @@ export const CaptureView: React.FC<{ initialSite?: string }> = ({ initialSite })
   const [result, setResult] = useState<CaptureResult | null>(null);
   const [error, setError] = useState('');
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [showAddSite, setShowAddSite] = useState(false);
+  const [newSiteName, setNewSiteName] = useState('');
+  const [siteError, setSiteError] = useState('');
+
+  async function handleAddSite() {
+    const name = newSiteName.trim();
+    if (!name) {
+      setSiteError('Enter a site name.');
+      return;
+    }
+    if (customSites.some((siteName) => siteName.toLowerCase() === name.toLowerCase())) {
+      setSiteError('This site already exists.');
+      return;
+    }
+    try {
+      await onAddSite?.(name);
+      setSite(name);
+      setNewSiteName('');
+      setSiteError('');
+      setShowAddSite(false);
+    } catch (e) {
+      setSiteError(e instanceof Error ? e.message : 'Could not add the site.');
+    }
+  }
 
   async function handleEnableOffline() {
     setOffline('loading');
@@ -99,7 +133,7 @@ export const CaptureView: React.FC<{ initialSite?: string }> = ({ initialSite })
     setSaveState('saving');
     setError('');
     try {
-      await saveInspection(report.trim(), result, site, location);
+      await saveInspection(report.trim(), result, site, location, teamId);
       setSaveState('saved');
     } catch (e) {
       setSaveState('idle');
@@ -143,6 +177,64 @@ export const CaptureView: React.FC<{ initialSite?: string }> = ({ initialSite })
         </div>
       </div>
 
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => {
+            setNewSiteName('');
+            setSiteError('');
+            setShowAddSite(true);
+          }}
+          className="px-3 py-1.5 rounded-xl border border-[#00DF89]/30 bg-[#00DF89]/10 hover:bg-[#00DF89]/15 text-xs font-mono font-semibold text-[#00DF89] transition"
+        >
+          + New Site
+        </button>
+      </div>
+
+      {showAddSite && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onMouseDown={(e) => {
+          if (e.target === e.currentTarget) setShowAddSite(false);
+        }}>
+          <div className="w-full max-w-sm rounded-2xl border border-[#162E2A] bg-[#0C1A18] p-5 shadow-2xl">
+            <h2 className="text-sm font-bold text-white">Add new site</h2>
+            <p className="mt-1 text-xs text-slate-400">Enter a plant or site name.</p>
+            <div className="mt-4 space-y-1.5">
+              <label className="text-xs font-semibold text-slate-300">Site name</label>
+              <input
+                autoFocus
+                type="text"
+                value={newSiteName}
+                onChange={(e) => setNewSiteName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleAddSite();
+                  if (e.key === 'Escape') setShowAddSite(false);
+                }}
+                maxLength={80}
+                placeholder="e.g. Plant 4"
+                className="w-full rounded-xl border border-[#162E2A] bg-[#081211] px-3.5 py-2.5 text-xs text-white placeholder-slate-600 outline-none focus:border-[#00DF89]"
+              />
+              {siteError && <p className="text-xs text-red-400">{siteError}</p>}
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowAddSite(false)}
+                className="rounded-xl border border-[#162E2A] px-3 py-2 text-xs text-slate-300 transition hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleAddSite}
+                className="rounded-xl border border-[#00DF89]/30 bg-[#00DF89] px-3 py-2 text-xs font-bold text-[#071311] transition hover:bg-[#28ed9f]"
+              >
+                Add Site
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {error && (
         <div className="bg-red-950/30 border border-red-800/50 text-red-400 text-xs rounded-xl p-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -181,6 +273,9 @@ export const CaptureView: React.FC<{ initialSite?: string }> = ({ initialSite })
                 <option value="Plant 1, Assembly Line" className="bg-[#081211] text-white">Plant 1, Assembly Line</option>
                 <option value="Plant 3, Chemical Storage" className="bg-[#081211] text-white">Plant 3, Chemical Storage</option>
                 <option value="Offshore Platform Delta" className="bg-[#081211] text-white">Offshore Platform Delta</option>
+                {customSites.map((customSite) => (
+                  <option key={customSite} value={customSite} className="bg-[#081211] text-white">{customSite}</option>
+                ))}
               </select>
               <svg className="w-4 h-4 text-slate-500 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />

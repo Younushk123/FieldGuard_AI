@@ -13,9 +13,12 @@ const byNewest = <T extends { createdAt: Timestamp }>(a: T, b: T) =>
 export function subscribeActions(
   uid: string,
   onData: (actions: ActionDoc[]) => void,
-  onError: (e: Error) => void
+  onError: (e: Error) => void,
+  teamId?: string | null
 ): Unsubscribe {
-  const q = query(collection(db, 'actions'), where('ownerId', '==', uid));
+  const q = teamId
+    ? query(collection(db, 'actions'), where('teamId', '==', teamId))
+    : query(collection(db, 'actions'), where('ownerId', '==', uid));
   return onSnapshot(
     q,
     (snap) => {
@@ -29,9 +32,12 @@ export function subscribeActions(
 export function subscribeInspections(
   uid: string,
   onData: (inspections: InspectionDoc[]) => void,
-  onError: (e: Error) => void
+  onError: (e: Error) => void,
+  teamId?: string | null
 ): Unsubscribe {
-  const q = query(collection(db, 'inspections'), where('ownerId', '==', uid));
+  const q = teamId
+    ? query(collection(db, 'inspections'), where('teamId', '==', teamId))
+    : query(collection(db, 'inspections'), where('ownerId', '==', uid));
   return onSnapshot(
     q,
     (snap) => {
@@ -46,12 +52,18 @@ export function subscribeInspection(
   uid: string,
   inspectionId: string,
   onData: (inspection: InspectionDoc | null) => void,
-  onError: (e: Error) => void
+  onError: (e: Error) => void,
+  teamId?: string | null
 ): Unsubscribe {
   return onSnapshot(
     doc(db, 'inspections', inspectionId),
     (snap) => {
-      if (!snap.exists() || snap.data().ownerId !== uid) {
+      if (!snap.exists()) {
+        onData(null);
+        return;
+      }
+      const data = snap.data();
+      if (teamId ? data.teamId !== teamId : data.ownerId !== uid) {
         onData(null);
         return;
       }
@@ -68,6 +80,7 @@ type NewAction = {
     priority?: ActionPriority;
     assignee?: string;
     deadline?: Date;
+    teamId?: string | null;
 };
 
 function actionData(uid: string, input: NewAction) {
@@ -83,6 +96,7 @@ function actionData(uid: string, input: NewAction) {
   if (input.priority) data.priority = input.priority;
   if (input.assignee) data.assignee = input.assignee;
   if (input.deadline) data.deadline = Timestamp.fromDate(input.deadline);
+  if (input.teamId) data.teamId = input.teamId;
   return data;
 }
 
@@ -119,4 +133,36 @@ export function updateAction(
   if (patch.assignee !== undefined) data.assignee = patch.assignee;
   if (patch.deadline) data.deadline = Timestamp.fromDate(patch.deadline);
   return updateDoc(doc(db, 'actions', id), data);
+}
+
+export function subscribeCustomSites(
+  uid: string,
+  onData: (names: string[]) => void,
+  onError: (e: Error) => void,
+  teamId?: string | null
+): Unsubscribe {
+  const q = teamId
+    ? query(collection(db, 'customSites'), where('teamId', '==', teamId))
+    : query(collection(db, 'customSites'), where('ownerId', '==', uid));
+  return onSnapshot(
+    q,
+    (snap) => {
+      const names = snap.docs
+        .map((d) => d.data().name)
+        .filter((name): name is string => typeof name === 'string' && name.length > 0);
+      onData([...new Set(names)].sort((a, b) => a.localeCompare(b)));
+    },
+    onError
+  );
+}
+
+export function createCustomSite(uid: string, name: string, teamId?: string | null) {
+  const data: Record<string, unknown> = {
+    ownerId: uid,
+    name,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
+  if (teamId) data.teamId = teamId;
+  return addDoc(collection(db, 'customSites'), data);
 }

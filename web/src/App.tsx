@@ -6,13 +6,17 @@ import { HistoryView } from './features/history/index.tsx';
 import { ActionsView } from './features/actions/index.tsx';
 import { AnalysisView } from './features/analysis/index.tsx';
 import { ReviewView } from './features/review/index.tsx';
-import { AuditReportPrintDoc, type AuditReportData } from './features/review/AuditReportDoc.tsx';
+import { AuditReportPrintDoc } from './features/review/AuditReportDoc.tsx';
 import { AuthView } from './features/auth/index.tsx';
 import { subscribeInspections } from './features/data/api.ts';
 import type { InspectionDoc } from './features/data/types.ts';
 import { useAuth } from './features/auth/useAuth';
-import { subscribeActions } from './features/data/api.ts';
-import { isWorkspace, type Workspace } from './features/data/sites.ts';
+import {
+  createCustomSite,
+  subscribeActions,
+  subscribeCustomSites,
+} from './features/data/api.ts';
+import { isWorkspace, type SiteSelection } from './features/data/sites.ts';
 
 type Tab = 'dashboard' | 'capture' | 'history' | 'review' | 'actions' | 'analysis' | 'settings';
 
@@ -64,13 +68,28 @@ function useOnline() {
 
 export const App: React.FC = () => {
   const [routeInfo, setRouteInfo] = useState(() => getRouteFromPath(window.location.pathname));
-  const [workspace, setWorkspace] = useState<Workspace>('Plant 2');
+  const [workspace, setWorkspace] = useState<SiteSelection>('Plant 2');
+  const [customSites, setCustomSites] = useState<string[]>([]);
   const [openActionCount, setOpenActionCount] = useState<number | null>(null);
   const [actionCountError, setActionCountError] = useState<string | null>(null);
   const [showAuditDoc, setShowAuditDoc] = useState(false);
   const [latestInspection, setLatestInspection] = useState<InspectionDoc | null>(null);
-  const { user, loading } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth > 800);
+  const [isMobileSidebar, setIsMobileSidebar] = useState(() => window.innerWidth <= 800);
+  const { user, loading, profile } = useAuth();
+  const teamId = profile?.teamId || null;
   const online = useOnline();
+
+useEffect(() => {
+  const media = window.matchMedia('(max-width: 800px)');
+  const syncSidebar = () => {
+    setIsMobileSidebar(media.matches);
+    if (media.matches) setSidebarOpen(false);
+  };
+  syncSidebar();
+  media.addEventListener('change', syncSidebar);
+  return () => media.removeEventListener('change', syncSidebar);
+}, []);
 
 
 useEffect(() => {
@@ -87,9 +106,22 @@ useEffect(() => {
         ).length
       );
     },
-    (error) => setActionCountError(error.message)
+    (error) => setActionCountError(error.message),
+    teamId
   );
-}, [user]);
+}, [user, teamId]);
+
+useEffect(() => {
+  setCustomSites([]);
+  if (!user) return;
+
+  return subscribeCustomSites(
+    user.uid,
+    setCustomSites,
+    (error) => console.error('Failed to load custom sites', error),
+    teamId
+  );
+}, [user, teamId]);
 
 useEffect(() => {
   if (!user) {
@@ -103,9 +135,10 @@ useEffect(() => {
     (error) => {
       setLatestInspection(null);
       console.error('Failed to load latest inspection', error);
-    }
+    },
+    teamId
   );
-}, [user]);
+}, [user, teamId]);
 
 
   useEffect(() => {
@@ -196,13 +229,23 @@ useEffect(() => {
 
   return (
     <div className="h-screen w-screen flex overflow-hidden bg-[#070E0D] text-slate-200 font-sans antialiased select-none">
+      {isMobileSidebar && sidebarOpen && (
+        <button
+          type="button"
+          aria-label="Close sidebar"
+          onClick={() => setSidebarOpen(false)}
+          className="fixed inset-0 z-30 bg-black/60"
+        />
+      )}
       {/* ================= LEFT SIDEBAR (100% MATCHING PDF) ================= */}
-      <aside className="w-64 bg-[#081211] border-r border-[#122421] flex flex-col justify-between shrink-0 z-20">
+      <aside className={`${sidebarOpen ? 'flex' : 'hidden'} ${
+        isMobileSidebar ? 'fixed inset-y-0 left-0 z-40 w-64 shadow-2xl' : 'w-64 shrink-0 z-20'
+      } bg-[#081211] border-r border-[#122421] flex-col justify-between`}>
         <div className="flex flex-col h-full">
           {/* Logo & Brand Header */}
           <div
             onClick={() => navigate('/')}
-            className="h-20 px-6 flex items-center gap-3 border-b border-[#122421] cursor-pointer hover:bg-[#0C1A18]/50 transition"
+            className="h-20 px-4 flex items-center gap-3 border-b border-[#122421] cursor-pointer hover:bg-[#0C1A18]/50 transition"
             title="FieldGuard AI - Public Home"
           >
             <div className="w-9 h-9 rounded-xl bg-[#0F2923] border border-[#00DF89]/30 flex items-center justify-center text-[#00DF89] shadow-sm">
@@ -216,6 +259,20 @@ useEffect(() => {
               </div>
               <div className="text-[10px] text-slate-500 font-mono tracking-wider">SAFETY PLATFORM</div>
             </div>
+            <button
+              type="button"
+              aria-label="Close sidebar"
+              title="Close sidebar"
+              onClick={(event) => {
+                event.stopPropagation();
+                setSidebarOpen(false);
+              }}
+              className="ml-auto w-8 h-8 shrink-0 rounded-lg border border-[#162E2A] bg-[#0C1A18] text-slate-400 hover:text-white hover:border-[#00DF89]/40 flex items-center justify-center transition"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 18l-6-6 6-6" />
+              </svg>
+            </button>
           </div>
 
           {/* Plant / Workspace Selector Dropdown (from PDF Page 04) */}
@@ -224,14 +281,21 @@ useEffect(() => {
               <select
                 value={workspace}
                 onChange={(e) => {
-                  if (isWorkspace(e.target.value)) setWorkspace(e.target.value);
+                  const value = e.target.value;
+                  if (value === 'All' || isWorkspace(value) || customSites.includes(value)) {
+                    setWorkspace(value);
+                  }
                 }}
                 className="w-full bg-[#0C1A18] border border-[#162E2A] rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-200 appearance-none focus:outline-none focus:border-[#00DF89] cursor-pointer hover:border-[#00DF89]/40 transition pr-9"
               >
+                <option value="All" className="bg-[#0C1A18] text-white">All plants</option>
                 <option value="Plant 2" className="bg-[#0C1A18] text-white">Plant 2 (Industrial Zone)</option>
                 <option value="Plant 1" className="bg-[#0C1A18] text-white">Plant 1 (Assembly Line)</option>
                 <option value="Plant 3" className="bg-[#0C1A18] text-white">Plant 3 (Chemical Storage)</option>
                 <option value="Offshore Delta" className="bg-[#0C1A18] text-white">Offshore Platform Delta</option>
+                {customSites.map((site) => (
+                  <option key={site} value={site} className="bg-[#0C1A18] text-white">{site}</option>
+                ))}
               </select>
               <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-[#00DF89] animate-pulse"></span>
@@ -254,7 +318,7 @@ useEffect(() => {
                   : 'text-slate-400 hover:text-slate-200 hover:bg-[#0C1A18]'
               }`}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                 </svg>
@@ -272,7 +336,7 @@ useEffect(() => {
                   : 'text-slate-400 hover:text-slate-200 hover:bg-[#0C1A18]'
               }`}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0 overflow-hidden">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
@@ -411,18 +475,37 @@ useEffect(() => {
       {/* ================= RIGHT MAIN VIEW CONTAINER (100% MATCHING PDF) ================= */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#070E0D]">
         {/* Top Header Bar */}
-        <header className="h-16 bg-[#081211] border-b border-[#122421] px-8 flex items-center justify-between shrink-0 z-10">
+        <header className="h-16 min-w-0 bg-[#081211] border-b border-[#122421] px-3 sm:px-5 lg:px-8 flex items-center justify-between gap-2 sm:gap-3 shrink-0 z-10 overflow-hidden">
           {/* Breadcrumb: Plant 2 > Safety overview */}
-          <div className="flex items-center gap-2 text-xs">
-            <span className="text-slate-400">{workspace}</span>
-            <span className="text-slate-600">&gt;</span>
-            <span className="text-white font-semibold">{getBreadcrumb()}</span>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              aria-label={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+              title={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+              onClick={() => setSidebarOpen((open) => !open)}
+              className="w-8 h-8 shrink-0 rounded-lg border border-[#162E2A] bg-[#0C1A18] text-slate-400 hover:text-[#00DF89] hover:border-[#00DF89]/40 flex items-center justify-center transition"
+            >
+              {sidebarOpen ? (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              )}
+            </button>
+            <div className="flex items-center gap-2 text-xs min-w-0">
+              <span className="hidden sm:inline text-slate-400 truncate max-w-28">{workspace}</span>
+              <span className="hidden sm:inline text-slate-600">&gt;</span>
+              <span className="text-white font-semibold truncate max-w-24 sm:max-w-40">{getBreadcrumb()}</span>
+            </div>
           </div>
 
           {/* Right Controls: Online status, bell, Export PDF, + New Inspection, Profile */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-4 shrink-0">
             {/* Online Indicator */}
-            <div className="flex items-center gap-2 text-xs text-slate-400">
+            <div className="hidden lg:flex items-center gap-2 text-xs text-slate-400">
               <span className={`w-2 h-2 rounded-full ${online ? 'bg-[#00DF89]' : 'bg-amber-500'}`}></span>
               <span className="text-[11px] font-medium">{online ? 'Network online' : 'Offline'}</span>
             </div>
@@ -430,7 +513,7 @@ useEffect(() => {
             {/* Bell Icon */}
             <button
               type="button"
-              className="w-8 h-8 rounded-full bg-[#0C1A18] border border-[#162E2A] flex items-center justify-center text-slate-400 hover:text-white transition"
+              className="hidden md:flex w-8 h-8 rounded-full bg-[#0C1A18] border border-[#162E2A] items-center justify-center text-slate-400 hover:text-white transition"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -442,22 +525,25 @@ useEffect(() => {
               type="button"
               onClick={handleExportPDF}
               title="Export official safety audit report as PDF"
-              className="px-3 py-1.5 rounded-lg bg-[#0C1A18] border border-[#162E2A] text-xs font-medium text-slate-300 hover:text-white hover:border-[#00DF89]/40 transition flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+              aria-label="Export PDF"
+              className="w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 shrink-0 rounded-lg bg-[#0C1A18] border border-[#162E2A] text-xs font-medium text-slate-300 hover:text-white hover:border-[#00DF89]/40 transition flex items-center justify-center sm:gap-1.5 cursor-pointer shadow-sm active:scale-95"
             >
               <svg className="w-3.5 h-3.5 text-[#00DF89]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              <span>Export PDF</span>
+              <span className="hidden md:inline">Export PDF</span>
             </button>
 
             {/* + New Inspection (Mint Green Button Exact from PDF) */}
             <button
               type="button"
               onClick={() => handleTabChange('capture')}
-              className="px-4 py-1.5 rounded-xl bg-[#00DF89] hover:bg-[#00C476] text-[#071311] font-bold text-xs flex items-center gap-1.5 transition shadow-sm cursor-pointer"
+              aria-label="New Inspection"
+              title="New Inspection"
+              className="h-8 sm:h-auto px-2.5 sm:px-3 lg:px-4 shrink-0 py-1.5 rounded-xl bg-[#00DF89] hover:bg-[#00C476] text-[#071311] font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-sm cursor-pointer"
             >
               <span>+</span>
-              <span>New Inspection</span>
+              <span className="hidden md:inline">New Inspection</span>
             </button>
 
             {/* Profile Avatar / Sign In Button */}
@@ -485,7 +571,18 @@ useEffect(() => {
         {/* Scrollable Viewport */}
         <main className="flex-1 overflow-y-auto p-8">
           {activeTab === 'dashboard' && <DashboardView workspace={workspace} onNavigate={handleTabChange} />}
-          {activeTab === 'capture' && <CaptureView initialSite={workspace} />}
+          {activeTab === 'capture' && (
+            <CaptureView
+              initialSite={workspace}
+              customSites={customSites}
+              onAddSite={(name) => {
+                if (!user) return Promise.reject(new Error('Sign in before adding a site.'));
+                return createCustomSite(user.uid, name, teamId).then(() => {
+                  setWorkspace(name);
+                });
+              }}
+            />
+          )}
           {activeTab === 'history' && <HistoryView workspace={workspace} onNavigate={(t, id) => handleTabChange(t as Tab, id)} />}
           {activeTab === 'actions' && <ActionsView />}
           {activeTab === 'analysis' && <AnalysisView />}

@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import '../../lib/firebase';
 import { subscribeInspections } from '../data/api';
 import type { InspectionDoc } from '../data/types';
-import { inspectionMatchesWorkspace, WORKSPACE_SITE_NAMES, type Workspace } from '../data/sites.ts';
+import { inspectionMatchesWorkspace, siteLabelForSelection, type SiteSelection } from '../data/sites.ts';
+import { useAuth } from '../auth/useAuth';
 
 const CATEGORIES = ['fall', 'electrical', 'fire', 'chemical', 'mechanical', 'ergonomic', 'environmental', 'other'];
 const LEVELS = ['low', 'medium', 'high', 'critical'];
@@ -22,7 +22,9 @@ const STATUS_PILL: Record<string, string> = {
 };
 
 // Owner: Younus / Humna - 100% Exact match of Page 04 (Inspections register)
-export const HistoryView: React.FC<{ workspace: Workspace; onNavigate?: (tab: string, inspectionId?: string) => void }> = ({ workspace, onNavigate }) => {
+export const HistoryView: React.FC<{ workspace: SiteSelection; onNavigate?: (tab: string, inspectionId?: string) => void }> = ({ workspace, onNavigate }) => {
+  const { user, profile } = useAuth();
+  const teamId = profile?.teamId || null;
   const [items, setItems] = useState<InspectionDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -34,34 +36,26 @@ export const HistoryView: React.FC<{ workspace: Workspace; onNavigate?: (tab: st
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    let stopData: (() => void) | undefined;
-    const stopAuth = onAuthStateChanged(getAuth(), (user) => {
-      stopData?.();
-      stopData = undefined;
-      if (!user) {
-        setItems([]);
+    if (!user) {
+      setItems([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError('');
+    return subscribeInspections(
+      user.uid,
+      (data) => {
+        setItems(data);
         setLoading(false);
-        return;
-      }
-      setLoading(true);
-      setError('');
-      stopData = subscribeInspections(
-        user.uid,
-        (data) => {
-          setItems(data);
-          setLoading(false);
-        },
-        (e) => {
-          setError(e.message);
-          setLoading(false);
-        }
-      );
-    });
-    return () => {
-      stopAuth();
-      stopData?.();
-    };
-  }, []);
+      },
+      (e) => {
+        setError(e.message);
+        setLoading(false);
+      },
+      teamId
+    );
+  }, [user, teamId]);
 
   const siteItems = useMemo(
     () => items.filter((inspection) => inspectionMatchesWorkspace(inspection, workspace)),
@@ -108,7 +102,7 @@ export const HistoryView: React.FC<{ workspace: Workspace; onNavigate?: (tab: st
             Inspections
           </h1>
           <p className="text-xs text-slate-400 mt-1">
-            Search, filter, and audit verified hazard records for {WORKSPACE_SITE_NAMES[workspace]}.
+            Search, filter, and audit verified hazard records for {siteLabelForSelection(workspace)}.
           </p>
         </div>
 
@@ -201,7 +195,7 @@ export const HistoryView: React.FC<{ workspace: Workspace; onNavigate?: (tab: st
           </div>
         ) : siteItems.length === 0 ? (
           <div className="py-16 text-center text-slate-400 text-xs">
-            No inspections recorded for {WORKSPACE_SITE_NAMES[workspace]}.
+            No inspections recorded for {siteLabelForSelection(workspace)}.
           </div>
         ) : filtered.length === 0 ? (
           <div className="py-16 text-center text-slate-400 text-xs">
@@ -230,7 +224,7 @@ export const HistoryView: React.FC<{ workspace: Workspace; onNavigate?: (tab: st
                       {`INS-${i.id.slice(0, 4).toUpperCase()}`}
                     </td>
                     <td className="py-3.5 px-4 text-slate-300 whitespace-nowrap">
-                      {WORKSPACE_SITE_NAMES[workspace]}
+                      {siteLabelForSelection(workspace)}
                     </td>
                     <td className="py-3.5 px-4 font-medium text-white max-w-sm truncate">
                       {i.summary || i.reportText}

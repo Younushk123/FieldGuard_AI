@@ -6,6 +6,17 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function userProfile(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)).data;
+    }
+
+    function sameTeam(teamId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && userProfile(request.auth.uid).status == 'active'
+        && userProfile(request.auth.uid).teamId == teamId;
+    }
+
     // ---------- inspections ----------
 
     function validAnalysis(a) {
@@ -26,7 +37,7 @@ service cloud.firestore {
 
     function validInspection(d) {
       return d.keys().hasOnly([
-          'ownerId', 'site', 'location', 'createdAt', 'updatedAt', 'reportText', 'schemaVersion',
+          'ownerId', 'teamId', 'site', 'location', 'createdAt', 'updatedAt', 'reportText', 'schemaVersion',
           'hazardCategory', 'likelihood', 'severity', 'summary',
           'suggestedAction', 'riskScore', 'riskLevel', 'inferenceSource',
           'status', 'reviewedBy', 'reviewedAt', 'analysis', 'inferenceMs'
@@ -65,13 +76,20 @@ service cloud.firestore {
 
     match /inspections/{id} {
       allow get: if signedIn()
-        && (resource == null || resource.data.ownerId == request.auth.uid);
-      allow list: if signedIn() && resource.data.ownerId == request.auth.uid;
+        && (resource == null
+          || resource.data.ownerId == request.auth.uid
+          || ('teamId' in resource.data && sameTeam(resource.data.teamId)));
+      allow list: if signedIn()
+        && (resource.data.ownerId == request.auth.uid
+          || ('teamId' in resource.data && sameTeam(resource.data.teamId)));
       allow create: if signedIn()
         && request.resource.data.ownerId == request.auth.uid
+        && (!('teamId' in request.resource.data)
+          || sameTeam(request.resource.data.teamId))
         && validInspection(request.resource.data);
       allow update: if signedIn()
-        && resource.data.ownerId == request.auth.uid
+        && (resource.data.ownerId == request.auth.uid
+          || ('teamId' in resource.data && sameTeam(resource.data.teamId)))
         && request.resource.data.ownerId == resource.data.ownerId
         && request.resource.data.createdAt == resource.data.createdAt
         && validInspection(request.resource.data);
@@ -82,7 +100,7 @@ service cloud.firestore {
 
     function validAction(d) {
       return d.keys().hasOnly([
-          'inspectionId', 'ownerId', 'title', 'description', 'priority',
+          'inspectionId', 'ownerId', 'teamId', 'title', 'description', 'priority',
           'status', 'assignee', 'deadline', 'createdAt', 'updatedAt'
         ])
         && d.keys().hasAll([
@@ -103,17 +121,116 @@ service cloud.firestore {
 
     match /actions/{id} {
       allow get: if signedIn()
-        && (resource == null || resource.data.ownerId == request.auth.uid);
-      allow list: if signedIn() && resource.data.ownerId == request.auth.uid;
+        && (resource == null
+          || resource.data.ownerId == request.auth.uid
+          || ('teamId' in resource.data && sameTeam(resource.data.teamId)));
+      allow list: if signedIn()
+        && (resource.data.ownerId == request.auth.uid
+          || ('teamId' in resource.data && sameTeam(resource.data.teamId)));
       allow create: if signedIn()
         && request.resource.data.ownerId == request.auth.uid
+        && (!('teamId' in request.resource.data)
+          || sameTeam(request.resource.data.teamId))
         && validAction(request.resource.data);
       allow update: if signedIn()
-        && resource.data.ownerId == request.auth.uid
+        && (resource.data.ownerId == request.auth.uid
+          || ('teamId' in resource.data && sameTeam(resource.data.teamId)))
         && request.resource.data.ownerId == resource.data.ownerId
         && request.resource.data.inspectionId == resource.data.inspectionId
         && validAction(request.resource.data);
       allow delete: if signedIn() && resource.data.ownerId == request.auth.uid;
+    }
+
+    // ---------- user-created custom sites ----------
+
+    function validCustomSite(d) {
+      return d.keys().hasOnly(['ownerId', 'teamId', 'name', 'createdAt', 'updatedAt'])
+        && d.keys().hasAll(['ownerId', 'name', 'createdAt', 'updatedAt'])
+        && d.ownerId is string
+        && d.name is string && d.name.size() > 0 && d.name.size() <= 80
+        && d.createdAt is timestamp
+        && d.updatedAt is timestamp;
+    }
+
+    match /customSites/{id} {
+      allow get: if signedIn()
+        && (resource == null
+          || resource.data.ownerId == request.auth.uid
+          || ('teamId' in resource.data && sameTeam(resource.data.teamId)));
+      allow list: if signedIn()
+        && (resource.data.ownerId == request.auth.uid
+          || ('teamId' in resource.data && sameTeam(resource.data.teamId)));
+      allow create: if signedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && (!('teamId' in request.resource.data)
+          || sameTeam(request.resource.data.teamId))
+        && validCustomSite(request.resource.data);
+      allow update: if signedIn()
+        && (resource.data.ownerId == request.auth.uid
+          || ('teamId' in resource.data && sameTeam(resource.data.teamId)))
+        && request.resource.data.ownerId == resource.data.ownerId
+        && validCustomSite(request.resource.data);
+      allow delete: if signedIn()
+        && (resource.data.ownerId == request.auth.uid
+          || ('teamId' in resource.data && sameTeam(resource.data.teamId)));
+    }
+
+    // ---------- teams and user profiles ----------
+
+    function validUserProfile(d) {
+      return d.keys().hasOnly([
+          'uid', 'email', 'role', 'teamId', 'teamName', 'status', 'createdAt', 'updatedAt'
+        ])
+        && d.uid is string
+        && d.email is string
+        && d.role in ['manager', 'member']
+        && d.teamId is string
+        && d.status in ['active', 'disabled'];
+    }
+
+    match /teams/{teamId} {
+      allow create: if signedIn()
+        && teamId == request.auth.uid
+        && request.resource.data.managerUid == request.auth.uid
+        && request.resource.data.inviteCode is string;
+      allow read: if signedIn() && sameTeam(teamId);
+      allow update: if signedIn()
+        && sameTeam(teamId)
+        && userProfile(request.auth.uid).role == 'manager';
+      allow delete: if false;
+    }
+
+    match /teamInvites/{code} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn()
+        && request.resource.data.teamId == request.auth.uid
+        && request.resource.data.active == true;
+      allow update: if signedIn()
+        && exists(/databases/$(database)/documents/teams/$(resource.data.teamId))
+        && get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data.managerUid == request.auth.uid;
+      allow delete: if false;
+    }
+
+    match /users/{uid} {
+      allow get: if signedIn()
+        && (uid == request.auth.uid
+          || ('teamId' in resource.data && sameTeam(resource.data.teamId)));
+      allow list: if signedIn()
+        && (resource.data.teamId is string
+          && sameTeam(resource.data.teamId));
+      allow create: if signedIn()
+        && uid == request.auth.uid
+        && request.resource.data.uid == request.auth.uid
+        && validUserProfile(request.resource.data);
+      allow update: if signedIn()
+        && ((uid == request.auth.uid
+          || (exists(/databases/$(database)/documents/users/$(uid))
+            && 'teamId' in resource.data
+            && sameTeam(resource.data.teamId)
+            && userProfile(request.auth.uid).role == 'manager'))
+        && validUserProfile(request.resource.data));
+      allow delete: if signedIn() && uid == request.auth.uid;
     }
 
     // Everything else (including any collection not listed here) is denied.

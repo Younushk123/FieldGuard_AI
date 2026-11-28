@@ -8,19 +8,47 @@ import {
   GoogleAuthProvider,
   signOut,
 } from 'firebase/auth';
-import { auth } from '../../lib/firebase';
+import { doc, getDoc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, db } from '../../lib/firebase';
+
+export type TeamRole = 'manager' | 'member';
+export type UserProfile = {
+  uid: string;
+  email: string;
+  role: TeamRole;
+  teamId: string | null;
+  teamName: string | null;
+  status: 'active' | 'disabled';
+};
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(auth.currentUser);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
+    let stopProfile: (() => void) | undefined;
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
+      stopProfile?.();
+      stopProfile = undefined;
+      setProfile(null);
+      if (currentUser) {
+        stopProfile = onSnapshot(
+          doc(db, 'users', currentUser.uid),
+          (snapshot) => {
+            setProfile(snapshot.exists() ? snapshot.data() as UserProfile : null);
+          },
+          () => setProfile(null)
+        );
+      }
       setLoading(false);
     });
-    return () => unsubscribe();
+    return () => {
+      stopProfile?.();
+      unsubscribe();
+    };
   }, []);
 
   const loginWithEmail = async (email: string, pass: string) => {
@@ -44,6 +72,97 @@ export function useAuth() {
     setLoading(true);
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, pass);
+      await setDoc(doc(db, 'users', cred.user.uid), {
+        uid: cred.user.uid,
+        email: cred.user.email || email,
+        role: 'member',
+        teamId: null,
+        teamName: null,
+        status: 'active',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      setUser(cred.user);
+      return cred.user;
+    } catch (err: unknown) {
+      const msg = getFriendlyErrorMessage(err);
+      setError(msg);
+      throw new Error(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const registerCorporate = async (email: string, pass: string, teamName: string) => {
+    setError(null);
+    setLoading(true);
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, pass);
+      const teamId = cred.user.uid;
+      const inviteCode = Array.from(crypto.getRandomValues(new Uint8Array(5)))
+        .map((value) => value.toString(16).padStart(2, '0'))
+        .join('')
+        .toUpperCase();
+      await setDoc(doc(db, 'teams', teamId), {
+        name: teamName.trim(),
+        managerUid: cred.user.uid,
+        inviteCode,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      await setDoc(doc(db, 'teamInvites', inviteCode), {
+        teamId,
+        active: true,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      await setDoc(doc(db, 'users', cred.user.uid), {
+        uid: cred.user.uid,
+        email: cred.user.email || email,
+        role: 'manager',
+        teamId,
+        teamName: teamName.trim(),
+        status: 'active',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      setUser(cred.user);
+      return cred.user;
+    } catch (err: unknown) {
+      const msg = getFriendlyErrorMessage(err);
+      setError(msg);
+      throw new Error(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const joinTeam = async (email: string, pass: string, inviteCode: string) => {
+    setError(null);
+    setLoading(true);
+    try {
+      const code = inviteCode.trim().toUpperCase();
+      const inviteSnap = await getDoc(doc(db, 'teamInvites', code));
+      if (!inviteSnap.exists()) throw new Error('This team invite code is invalid.');
+      const invite = inviteSnap.data();
+      if (!invite.active || typeof invite.teamId !== 'string') {
+        throw new Error('This team invite is no longer active.');
+      }
+      const teamSnap = await getDoc(doc(db, 'teams', invite.teamId));
+      if (!teamSnap.exists()) throw new Error('The team for this invite could not be found.');
+      const team = teamSnap.data();
+
+      const cred = await createUserWithEmailAndPassword(auth, email, pass);
+      await setDoc(doc(db, 'users', cred.user.uid), {
+        uid: cred.user.uid,
+        email: cred.user.email || email,
+        role: 'member',
+        teamId: invite.teamId,
+        teamName: typeof team.name === 'string' ? team.name : null,
+        status: 'active',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
       setUser(cred.user);
       return cred.user;
     } catch (err: unknown) {
@@ -61,6 +180,20 @@ export function useAuth() {
     try {
       const provider = new GoogleAuthProvider();
       const cred = await signInWithPopup(auth, provider);
+      const profileRef = doc(db, 'users', cred.user.uid);
+      const profileSnap = await getDoc(profileRef);
+      if (!profileSnap.exists()) {
+        await setDoc(profileRef, {
+          uid: cred.user.uid,
+          email: cred.user.email || '',
+          role: 'member',
+          teamId: null,
+          teamName: null,
+          status: 'active',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      }
       setUser(cred.user);
       return cred.user;
     } catch (err: unknown) {
@@ -87,9 +220,12 @@ export function useAuth() {
     user,
     loading,
     error,
+    profile,
     setError,
     loginWithEmail,
     registerWithEmail,
+    registerCorporate,
+    joinTeam,
     loginWithGoogle,
     logout,
   };

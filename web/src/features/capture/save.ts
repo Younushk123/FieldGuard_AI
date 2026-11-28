@@ -6,7 +6,7 @@ import type { CaptureResult } from './ai';
 // Turn on only after Maaz has added inferenceMs to the schema and deployed the rules.
 const SAVE_INFERENCE_MS = true;
 
-export async function saveInspection(reportText: string, r: CaptureResult, site: string, location: string) {
+export async function saveInspection(reportText: string, r: CaptureResult, site: string, location: string, teamId?: string | null) {
   const uid = getAuth().currentUser?.uid;
   if (!uid) throw new Error('Please sign in first.');
 
@@ -28,6 +28,7 @@ export async function saveInspection(reportText: string, r: CaptureResult, site:
     status: 'pending_review',
   };
   if (location.trim()) data.location = location.trim();
+  if (teamId) data.teamId = teamId;
   if (SAVE_INFERENCE_MS) data.inferenceMs = Math.min(Math.round(r.inferenceMs), 120000);
 
   return addDoc(collection(db, 'inspections'), data);}
