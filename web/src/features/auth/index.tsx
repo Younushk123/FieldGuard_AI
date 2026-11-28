@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
+import { useEffect } from 'react';
+import { collection, doc, onSnapshot, query, updateDoc, where, serverTimestamp } from 'firebase/firestore';
 import { useAuth } from './useAuth';
-import { isFirebaseConfigured } from '../../lib/firebase';
+import { db, isFirebaseConfigured } from '../../lib/firebase';
+import type { UserProfile } from './useAuth';
 
 // Owner: Humna (humna/web-login) - Exact 100% Replication of PDF Page 10 (Sign-in Screen)
 export const AuthView: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
@@ -13,12 +16,58 @@ export const AuthView: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
     registerWithEmail,
     loginWithGoogle,
     logout,
+    registerCorporate,
+    joinTeam,
+    profile,
   } = useAuth();
 
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  const [accountKind, setAccountKind] = useState<'personal' | 'corporate' | 'join'>('personal');
+  const [teamName, setTeamName] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
+  const [teamInviteCode, setTeamInviteCode] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [copiedUid, setCopiedUid] = useState(false);
+  const [teamMembers, setTeamMembers] = useState<UserProfile[]>([]);
+  const [teamError, setTeamError] = useState('');
+  const [teamBusy, setTeamBusy] = useState(false);
+
+  useEffect(() => {
+    if (!profile?.teamId) {
+      setTeamMembers([]);
+      setTeamInviteCode('');
+      return;
+    }
+    const stopTeam = onSnapshot(doc(db, 'teams', profile.teamId), (snapshot) => {
+      setTeamInviteCode(typeof snapshot.data()?.inviteCode === 'string' ? snapshot.data()?.inviteCode : '');
+    });
+    const stopMembers = onSnapshot(
+      query(collection(db, 'users'), where('teamId', '==', profile.teamId)),
+      (snapshot) => setTeamMembers(snapshot.docs.map((item) => item.data() as UserProfile)),
+      (error) => setTeamError(error.message)
+    );
+    return () => {
+      stopTeam();
+      stopMembers();
+    };
+  }, [profile?.teamId]);
+
+  const deleteTeamMember = async (member: UserProfile) => {
+    if (!window.confirm(`Remove ${member.email} from this team?`)) return;
+    setTeamError('');
+    setTeamBusy(true);
+    try {
+      await updateDoc(doc(db, 'users', member.uid), {
+        status: 'disabled',
+        updatedAt: serverTimestamp(),
+      });
+    } catch (err) {
+      setTeamError(err instanceof Error ? err.message : 'Could not remove team member.');
+    } finally {
+      setTeamBusy(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,10 +75,22 @@ export const AuthView: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
       setError('Please provide both corporate email and password.');
       return;
     }
+    if (mode === 'signup' && accountKind === 'corporate' && !teamName.trim()) {
+      setError('Please provide a corporate account name.');
+      return;
+    }
+    if (mode === 'signup' && accountKind === 'join' && !inviteCode.trim()) {
+      setError('Please provide the team invite code.');
+      return;
+    }
 
     try {
       if (mode === 'signin') {
         await loginWithEmail(email, password);
+      } else if (accountKind === 'corporate') {
+        await registerCorporate(email, password, teamName);
+      } else if (accountKind === 'join') {
+        await joinTeam(email, password, inviteCode);
       } else {
         await registerWithEmail(email, password);
       }
@@ -50,6 +111,11 @@ export const AuthView: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
   if (user) {
     return (
       <div className="max-w-2xl mx-auto space-y-6 text-slate-200">
+        {profile?.status === 'disabled' && (
+          <div className="rounded-xl border border-red-500/30 bg-red-950/30 px-4 py-3 text-xs text-red-300">
+            Your team access has been removed. Sign out or continue as a personal account.
+          </div>
+        )}
         <div>
           <div className="text-[10px] font-mono uppercase tracking-widest text-[#00DF89] font-bold">
             WORKSPACE / CONFIGURATION
@@ -110,6 +176,59 @@ export const AuthView: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
               <div className="font-semibold text-slate-200 mt-1">Plant 2 · Industrial Assembly</div>
             </div>
           </div>
+
+          {profile?.role === 'manager' && profile.teamId && (
+            <div className="rounded-2xl border border-[#162E2A] bg-[#081211] p-5 space-y-4">
+              <div>
+                <div className="text-sm font-bold text-white">Team management</div>
+                <p className="mt-1 text-xs text-slate-400">
+                  {profile.teamName || 'Corporate team'} · Share this code so members can join.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 rounded-xl border border-[#162E2A] bg-[#0C1A18] p-3">
+                <div className="min-w-0 flex-1">
+                  <div className="text-[10px] uppercase text-slate-500">Team invite code</div>
+                  <div className="mt-1 font-mono text-sm font-bold tracking-widest text-[#00DF89]">
+                    {teamInviteCode || 'Loading...'}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  disabled={!teamInviteCode}
+                  onClick={() => navigator.clipboard.writeText(teamInviteCode)}
+                  className="rounded-lg border border-[#00DF89]/30 px-2.5 py-1.5 text-[10px] font-semibold text-[#00DF89] disabled:opacity-50"
+                >
+                  Copy
+                </button>
+              </div>
+
+              {teamError && <div className="text-xs text-red-400">{teamError}</div>}
+
+              <div className="space-y-2">
+                {teamMembers.map((member) => (
+                  <div key={member.uid} className="flex items-center justify-between rounded-xl border border-[#162E2A] bg-[#0C1A18] px-3 py-2.5">
+                    <div className="min-w-0">
+                      <div className="truncate text-xs font-semibold text-slate-200">{member.email}</div>
+                      <div className="mt-0.5 text-[10px] font-mono text-slate-500">
+                        {member.role === 'manager' ? 'MANAGER' : 'MEMBER'} · {member.status}
+                      </div>
+                    </div>
+                    {member.role !== 'manager' && (
+                      <button
+                        type="button"
+                        onClick={() => deleteTeamMember(member)}
+                        disabled={teamBusy}
+                        className="ml-3 rounded-lg border border-red-500/30 px-2.5 py-1.5 text-[10px] font-semibold text-red-400 transition hover:bg-red-950/30 disabled:opacity-50"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="pt-2">
             <button
@@ -304,6 +423,76 @@ export const AuthView: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
 
           {/* Form Fields (Matching Page 10 input design) */}
           <form onSubmit={handleSubmit} className="space-y-4">
+            {mode === 'signup' && (
+              <>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-300">Account type</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setAccountKind('personal')}
+                      className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+                        accountKind === 'personal'
+                          ? 'border-[#00DF89] bg-[#00DF89]/10 text-[#00DF89]'
+                          : 'border-[#162E2A] bg-[#0C1A18] text-slate-400'
+                      }`}
+                    >
+                      Personal
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAccountKind('corporate')}
+                      className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+                        accountKind === 'corporate'
+                          ? 'border-[#00DF89] bg-[#00DF89]/10 text-[#00DF89]'
+                          : 'border-[#162E2A] bg-[#0C1A18] text-slate-400'
+                      }`}
+                    >
+                      Corporate / Team
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAccountKind('join')}
+                      className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+                        accountKind === 'join'
+                          ? 'border-[#00DF89] bg-[#00DF89]/10 text-[#00DF89]'
+                          : 'border-[#162E2A] bg-[#0C1A18] text-slate-400'
+                      }`}
+                    >
+                      Join Team
+                    </button>
+                  </div>
+                </div>
+                {accountKind === 'corporate' && (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-300">Corporate account name</label>
+                    <input
+                      type="text"
+                      required
+                      value={teamName}
+                      onChange={(e) => setTeamName(e.target.value)}
+                      maxLength={80}
+                      placeholder="e.g. Acme Safety Operations"
+                      className="w-full bg-[#0C1A18] border border-[#162E2A] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-[#00DF89]"
+                    />
+                  </div>
+                )}
+                {accountKind === 'join' && (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-300">Team invite code</label>
+                    <input
+                      type="text"
+                      required
+                      value={inviteCode}
+                      onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                      maxLength={20}
+                      placeholder="Enter invite code"
+                      className="w-full bg-[#0C1A18] border border-[#162E2A] rounded-xl px-3.5 py-2.5 text-xs font-mono tracking-widest text-white placeholder-slate-600 focus:outline-none focus:border-[#00DF89]"
+                    />
+                  </div>
+                )}
+              </>
+            )}
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-slate-300">Email address</label>
               <input

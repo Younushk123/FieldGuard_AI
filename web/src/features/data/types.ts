@@ -8,6 +8,7 @@ export interface ActionDoc {
   id: string;
   inspectionId: string;
   ownerId: string;
+  teamId?: string;
   title: string;
   description?: string;
   priority?: ActionPriority;
@@ -21,6 +22,7 @@ export interface ActionDoc {
 export interface InspectionDoc {
   id: string;
   ownerId: string;
+  teamId?: string;
   site?: string;
   location?: string;
   createdAt: Timestamp;

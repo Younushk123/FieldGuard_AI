@@ -42,5 +42,37 @@ Field names match classifier-schema v1.0 and cloud-analyst-schema v1.0.
 | deadline | timestamp | approval date + suggestedDueDays |
 | createdAt, updatedAt | timestamp | |
 
+## customSites/{id}
+| Field | Type | Notes |
+|---|---|---|
+| ownerId | string | auth uid; only this user can access the site |
+| name | string | user-created plant or site name, 1-80 characters |
+| createdAt, updatedAt | timestamp | |
+
+## teams/{teamId}
+| Field | Type | Notes |
+|---|---|---|
+| name | string | corporate account name |
+| managerUid | string | user uid that manages the team |
+| createdAt, updatedAt | timestamp | |
+
+## users/{uid}
+| Field | Type | Notes |
+|---|---|---|
+| uid | string | Firebase Authentication uid |
+| email | string | member login email |
+| role | string | manager or member |
+| teamId | string | shared corporate team identifier |
+| teamName | string, optional | corporate account name |
+| status | string | active or disabled |
+| createdAt, updatedAt | timestamp | |
+
+## teamInvites/{code}
+| Field | Type | Notes |
+|---|---|---|
+| teamId | string | team selected when a member registers |
+| active | bool | invite availability |
+| createdAt, updatedAt | timestamp | |
+
 ## Remote Config (integers)
 risk_threshold_medium=5, risk_threshold_high=10, risk_threshold_critical=16

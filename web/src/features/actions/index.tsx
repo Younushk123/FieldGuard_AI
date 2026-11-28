@@ -65,12 +65,12 @@ const ActionCard: React.FC<{ action: ActionDoc; onError: (m: string) => void }> 
   );
 };
 
-const NewActionForm: React.FC<{ uid: string; inspections: InspectionDoc[]; onError: (m: string) => void }> = ({ uid, inspections, onError }) => {
+const NewActionForm: React.FC<{ uid: string; teamId: string | null; inspections: InspectionDoc[]; onError: (m: string) => void }> = ({ uid, teamId, inspections, onError }) => {
   const [title, setTitle] = useState('');
   const [inspectionId, setInspectionId] = useState('manual');
   const submit = () => {
     if (!title.trim()) return;
-    createAction(uid, { inspectionId, title: title.trim() }).then(() => setTitle('')).catch((e: Error) => onError(e.message || 'Could not create action'));
+    createAction(uid, { inspectionId, title: title.trim(), teamId }).then(() => setTitle('')).catch((e: Error) => onError(e.message || 'Could not create action'));
   };
   return (
     <div className="fg-card flex flex-wrap gap-2 items-center">
@@ -85,17 +85,18 @@ const NewActionForm: React.FC<{ uid: string; inspections: InspectionDoc[]; onErr
 };
 
 export const ActionsView: React.FC = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, profile } = useAuth();
+  const teamId = profile?.teamId || null;
   const [actions, setActions] = useState<ActionDoc[] | null>(null);
   const [inspections, setInspections] = useState<InspectionDoc[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) { setActions(null); return; }
-    const a = subscribeActions(user.uid, setActions, (e) => setError(e.message));
-    const b = subscribeInspections(user.uid, setInspections, (e) => setError(e.message));
+    const a = subscribeActions(user.uid, setActions, (e) => setError(e.message), teamId);
+    const b = subscribeInspections(user.uid, setInspections, (e) => setError(e.message), teamId);
     return () => { a(); b(); };
-  }, [user]);
+  }, [user, teamId]);
 
   if (loading) return <div className="fg-sub">Loading…</div>;
   if (!user) return <div className="fg-sub">Sign in to see your corrective actions.</div>;
@@ -108,7 +109,7 @@ export const ActionsView: React.FC = () => {
         <p className="fg-sub mt-1">Track hazards from assignment through resolution.</p>
       </header>
       {error && <div className="fg-banner fg-banner--error">{error}<button className="fg-link" onClick={() => setError(null)}>Dismiss</button></div>}
-      <NewActionForm uid={user.uid} inspections={inspections} onError={setError} />
+      <NewActionForm uid={user.uid} teamId={teamId} inspections={inspections} onError={setError} />
       {actions === null ? <div className="fg-sub">Loading actions…</div> : (
         <div className="fg-board">
           {COLUMNS.map((col) => {

@@ -1,6 +1,7 @@
 import type { InspectionDoc } from './types.ts';
 
 export type Workspace = 'Plant 1' | 'Plant 2' | 'Plant 3' | 'Offshore Delta';
+export type SiteSelection = 'All' | Workspace | string;
 
 export const WORKSPACE_SITE_NAMES: Record<Workspace, string> = {
   'Plant 1': 'Plant 1, Assembly Line',
@@ -11,6 +12,11 @@ export const WORKSPACE_SITE_NAMES: Record<Workspace, string> = {
 
 export function isWorkspace(value: string): value is Workspace {
   return Object.prototype.hasOwnProperty.call(WORKSPACE_SITE_NAMES, value);
+}
+
+export function siteLabelForSelection(selection: SiteSelection): string {
+  if (selection === 'All') return 'All plants';
+  return isWorkspace(selection) ? WORKSPACE_SITE_NAMES[selection] : selection;
 }
 
 const SITE_ALIASES: Record<Workspace, string[]> = {
@@ -37,6 +43,10 @@ export function workspaceForInspection(inspection: InspectionDoc): Workspace | n
   return matches.length === 1 ? matches[0][0] : null;
 }
 
-export function inspectionMatchesWorkspace(inspection: InspectionDoc, workspace: Workspace): boolean {
-  return workspaceForInspection(inspection) === workspace;
+export function inspectionMatchesWorkspace(inspection: InspectionDoc, workspace: SiteSelection): boolean {
+  if (workspace === 'All') return true;
+  if (inspection.site === workspace) return true;
+  if (isWorkspace(workspace)) return workspaceForInspection(inspection) === workspace;
+  const text = `${inspection.site || ''}\n${inspection.reportText}\n${inspection.summary}`.toLowerCase();
+  return text.includes(workspace.toLowerCase());
 }

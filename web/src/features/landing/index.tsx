@@ -5,7 +5,7 @@ export const LandingPageView: React.FC<{
   onLaunchDashboard: () => void;
   onSignIn: () => void;
   onExploreAI?: () => void;
-}> = ({ onLaunchDashboard, onSignIn, onExploreAI }) => {
+}> = ({ onLaunchDashboard, onSignIn }) => {
   const [showHowItWorks, setShowHowItWorks] = useState(false);
   const [showPlatformOverview, setShowPlatformOverview] = useState(false);
   return (

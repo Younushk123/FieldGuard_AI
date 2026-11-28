@@ -3,7 +3,7 @@ import { useAuth } from '../auth/useAuth';
 import { subscribeActions, subscribeInspections } from '../data/api.ts';
 import { computeStats, type CategoryRow, type Period } from '../data/dashboardStats.ts';
 import type { ActionDoc, InspectionDoc } from '../data/types.ts';
-import { inspectionMatchesWorkspace, WORKSPACE_SITE_NAMES, type Workspace } from '../data/sites.ts';
+import { inspectionMatchesWorkspace, siteLabelForSelection, type SiteSelection } from '../data/sites.ts';
 import type { RiskLevel } from '../../types';
 
 const RISK: Record<RiskLevel, { label: string; color: string }> = {
@@ -21,7 +21,7 @@ const PERIODS: { value: Period; label: string }[] = [
 ];
 
 type Target = 'history' | 'review';
-type DashboardProps = { workspace: Workspace; onNavigate?: (target: Target, inspectionId?: string) => void };
+type DashboardProps = { workspace: SiteSelection; onNavigate?: (target: Target, inspectionId?: string) => void };
 
 const Card: React.FC<{ title: string; sub?: string; right?: React.ReactNode; children: React.ReactNode }> = ({
   title, sub, right, children,
@@ -81,7 +81,8 @@ const Source: React.FC<{ source: InspectionDoc['inferenceSource'] }> = ({ source
 );
 
 export const DashboardView: React.FC<DashboardProps> = ({ workspace, onNavigate }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, profile } = useAuth();
+  const teamId = profile?.teamId || null;
   const [inspections, setInspections] = useState<InspectionDoc[] | null>(null);
   const [actions, setActions] = useState<ActionDoc[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -89,13 +90,13 @@ export const DashboardView: React.FC<DashboardProps> = ({ workspace, onNavigate 
 
   useEffect(() => {
     if (!user) return;
-    const stopInspections = subscribeInspections(user.uid, setInspections, (e) => setError(e.message));
-    const stopActions = subscribeActions(user.uid, setActions, (e) => setError(e.message));
+    const stopInspections = subscribeInspections(user.uid, setInspections, (e) => setError(e.message), teamId);
+    const stopActions = subscribeActions(user.uid, setActions, (e) => setError(e.message), teamId);
     return () => {
       stopInspections();
       stopActions();
     };
-  }, [user]);
+  }, [user, teamId]);
 
   const siteInspections = useMemo(
     () => (inspections ?? []).filter((inspection) => inspectionMatchesWorkspace(inspection, workspace)),
@@ -125,7 +126,7 @@ export const DashboardView: React.FC<DashboardProps> = ({ workspace, onNavigate 
         <div className="text-[10px] font-mono tracking-widest uppercase font-bold text-[#00DF89]">{today}</div>
         <h1 className="text-3xl font-bold text-white tracking-tight mt-1">Safety Intelligence Overview</h1>
         <p className="text-xs text-slate-400 mt-1">
-          Current inspection and corrective-action records for {WORKSPACE_SITE_NAMES[workspace]}.
+          Current inspection and corrective-action records for {siteLabelForSelection(workspace)}.
         </p>
       </div>
 
@@ -175,7 +176,7 @@ export const DashboardView: React.FC<DashboardProps> = ({ workspace, onNavigate 
         </Card>
       </div>
 
-      <Card title="Recent inspections" sub={`Latest records for ${WORKSPACE_SITE_NAMES[workspace]}`}
+      <Card title="Recent inspections" sub={`Latest records for ${siteLabelForSelection(workspace)}`}
         right={
           <button onClick={() => onNavigate?.('history')}
             className="text-xs font-bold text-[#00DF89] hover:underline cursor-pointer">View all →</button>
@@ -200,7 +201,7 @@ export const DashboardView: React.FC<DashboardProps> = ({ workspace, onNavigate 
                   <td className="py-3 pr-4">
                     <div className="font-semibold text-white">{inspection.summary}</div>
                     <div className="text-[11px] font-mono text-slate-500 mt-0.5">
-                      {WORKSPACE_SITE_NAMES[workspace]} · {inspection.id} · {inspection.createdAt.toDate().toLocaleString()}
+                      {siteLabelForSelection(workspace)} · {inspection.id} · {inspection.createdAt.toDate().toLocaleString()}
                     </div>
                   </td>
                   <td className="py-3 pr-4 capitalize text-slate-300">{inspection.hazardCategory}</td>
