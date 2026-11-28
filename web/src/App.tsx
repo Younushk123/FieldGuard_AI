@@ -16,7 +16,7 @@ import {
   subscribeActions,
   subscribeCustomSites,
 } from './features/data/api.ts';
-import { isWorkspace, type SiteSelection } from './features/data/sites.ts';
+import { isWorkspace, inspectionMatchesWorkspace, WORKSPACE_SITE_NAMES, type SiteSelection, type Workspace } from './features/data/sites.ts';
 
 type Tab = 'dashboard' | 'capture' | 'history' | 'review' | 'actions' | 'analysis' | 'settings';
 
@@ -73,7 +73,7 @@ export const App: React.FC = () => {
   const [openActionCount, setOpenActionCount] = useState<number | null>(null);
   const [actionCountError, setActionCountError] = useState<string | null>(null);
   const [showAuditDoc, setShowAuditDoc] = useState(false);
-  const [latestInspection, setLatestInspection] = useState<InspectionDoc | null>(null);
+  const [userInspections, setUserInspections] = useState<InspectionDoc[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth > 800);
   const [isMobileSidebar, setIsMobileSidebar] = useState(() => window.innerWidth <= 800);
   const { user, loading, profile } = useAuth();
@@ -125,20 +125,31 @@ useEffect(() => {
 
 useEffect(() => {
   if (!user) {
-    setLatestInspection(null);
+    setUserInspections([]);
     return;
   }
 
   return subscribeInspections(
     user.uid,
-    (list) => setLatestInspection(list[0] ?? null),
+    (list) => setUserInspections(list),
     (error) => {
-      setLatestInspection(null);
-      console.error('Failed to load latest inspection', error);
+      setUserInspections([]);
+      console.error('Failed to load user inspections', error);
     },
     teamId
   );
 }, [user, teamId]);
+
+// Pick the latest inspection that matches the currently selected plant/workspace
+const latestInspection = React.useMemo(() => {
+  if (isWorkspace(workspace)) {
+    const matches = userInspections.filter((item) => inspectionMatchesWorkspace(item, workspace));
+    return matches[0] ?? null;
+  }
+  // For custom sites
+  const matches = userInspections.filter((item) => item.site === workspace);
+  return matches[0] ?? userInspections[0] ?? null;
+}, [userInspections, workspace]);
 
 
   useEffect(() => {
@@ -600,8 +611,8 @@ useEffect(() => {
             latestInspection
               ? {
                   reportId: `INS-${latestInspection.id.slice(0, 4).toUpperCase()}`,
-                  facility: workspace,
-                  location: 'Logged Inspection Area',
+                  facility: latestInspection.site || (isWorkspace(workspace) ? WORKSPACE_SITE_NAMES[workspace] : workspace),
+                  location: latestInspection.location || 'Logged Inspection Area',
                   timestamp: latestInspection.createdAt?.toDate
                     ? latestInspection.createdAt.toDate().toLocaleString('en-US', {
                         weekday: 'short',
